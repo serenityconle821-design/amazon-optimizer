@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>亚马逊全能多擎优化器 V14.21 (极速网络预载版)</title>
+    
+    <!-- 极速网络通道：DNS 预解析与预连接，抵抗部分 VPN 延迟 -->
+    <link rel="dns-prefetch" href="https://cdn.staticfile.net" />
+    <link rel="preconnect" href="https://cdn.staticfile.net" crossorigin />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 如下为底座核心。如需纯离线使用，可将 src 的链接替换为本地下载的文件路径 -->
+    <script src="https://cdn.staticfile.net/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+    <script src="https://cdn.staticfile.net/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://cdn.staticfile.net/babel-standalone/7.23.6/babel.min.js"></script>
+    <script src="https://cdn.staticfile.net/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        body { background-color: #f5f5f7; color: #1d1d1f; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #d2d2d7; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #86868b; }
+        .log-scroll-container::-webkit-scrollbar { width: 8px; height: 8px; }
+        .log-scroll-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .log-scroll-container::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        .log-scroll-container::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+        input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        textarea:focus, select:focus, input:focus { outline: none; border-color: #007aff; box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        const IconUpload = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>;
+        const IconSettings = () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1-2 2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>;
+        const IconDownload = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>;
+        const IconCheck = () => <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#34c759" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>;
+        const IconLoader = () => <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="4.93" x2="19.07" y2="7.76"></line></svg>;
+        const IconActivity = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>;
+        const IconBan = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>;
+        const IconTrash = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>;
+        const IconPlus = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
+        const IconAlertTriangle = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffcc00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>;
+        const IconFileText = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>;
+        const IconEdit3 = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
+        const IconTrendingDown = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"></polyline><polyline points="16 17 22 17 22 11"></polyline></svg>;
+        const IconPercent = () => <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="5" x2="5" y2="19"></line><circle cx="6.5" cy="6.5" r="2.5"></circle><circle cx="17.5" cy="17.5" r="2.5"></circle></svg>;
+        const IconChevron = ({ open }) => <svg className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>;
+
+        function AmazonBidOptimizer() {
+            const [activeTab, setActiveTab] = useState('optimizer'); 
+            const [isProcessing, setIsProcessing] = useState(false);
+            const [progressMsg, setProgressMsg] = useState("");
+            
+            const [fileData, setFileData] = useState(null);
+            const [slimExport, setSlimExport] = useState(true);
+            const fileInputRef = useRef(null);
+
+            const [extractedSpus, setExtractedSpus] = useState([]);
+            const [activeCampaigns, setActiveCampaigns] = useState([]); 
+            const [automatedCampaignIds, setAutomatedCampaignIds] = useState(new Set());
+            const [dedupSet, setDedupSet] = useState(new Set());
+            const [activeAdGroupIds, setActiveAdGroupIds] = useState(new Set()); 
+            const [campaignStartDates, setCampaignStartDates] = useState(new Map());
+            const [campaignStrategies, setCampaignStrategies] = useState(new Map()); 
+
+            const [allCampaignMeta, setAllCampaignMeta] = useState([]);
+            const [availablePortfolios, setAvailablePortfolios] = useState([]);
+            const [selectedPortfolios, setSelectedPortfolios] = useState(['ALL']);
+
+            const [spuRules, setSpuRules] = useState([{ id: Date.now(), keyword: '', targetAcos: 25, negClick: 25, negSpend: 15.0, negAcos: 30, _selected: true }]);
+            const [batchTargetAcos, setBatchTargetAcos] = useState(25);
+            const [summary, setSummary] = useState(null);
+            
+            const [logFilter, setLogFilter] = useState('all');
+            const [logSearchText, setLogSearchText] = useState("");
+            const [logSortBy, setLogSortBy] = useState("default");
+            const [churnLogSearchText, setChurnLogSearchText] = useState("");
+            const [churnLogSortBy, setChurnLogSortBy] = useState("default");
+            
+            const [selectedLogIds, setSelectedLogIds] = useState(new Set());
+            const [selectedChurnLogIds, setSelectedChurnLogIds] = useState(new Set());
+            
+            const [panels, setPanels] = useState({ tos: false, macro: false, micro: false, spu: true, bid: true, manager: true });
+            const togglePanel = (key) => setPanels(prev => ({ ...prev, [key]: !prev[key] }));
+
+            const [managerMap, setManagerMap] = useState({});
+
+            const [params, setParams] = useState({
+                acosBuffer: 10, maxBid: 1.00, minBid: 0.10, clickThreshold: 20, impressionThreshold: 500, increasePcnt: 10, decreasePcnt: 20,
+                tosTargetAcos: 20, tosLowSpendThreshold: 10.0, increaseTosPcnt: 15, decreaseTosPcnt: 15,
+                negClickThreshold: 25, negSpendThreshold: 15.0, negAcosThreshold: 30, enableAutoNegatives: true,
+                pauseClickThresholdTarget: 35, pauseSpendThresholdTarget: 20, pauseAcosThresholdTarget: 60, 
+                pauseClickThresholdSku: 30, pauseSpendThresholdSku: 20, pauseAcosThresholdSku: 50,
+                pauseSpendThresholdCampaign: 40, pauseSpendThresholdAdGroup: 30, enableTimeBasedPause: false, pauseTimeThresholdDays: 14
+            });
+
+            const negFileInputRef = useRef(null);
+            const [globalNegState, setGlobalNegState] = useState({ spu: '', exact: '', phrase: '', asin: '' });
+
+            const [churnFileData, setChurnFileData] = useState(null);
+            const churnInputRef = useRef(null);
+            const [engineCState, setEngineCState] = useState({ threshold: 60, minOrders: 2, actionType: 'campaign_and_sku' });
+            const [engineCSummary, setEngineCSummary] = useState(null);
+
+            const [engineDInput, setEngineDInput] = useState('');
+            const [engineDMatched, setEngineDMatched] = useState(null);
+            const [engineDBatchMode, setEngineDBatchMode] = useState('add');
+            const [engineDBatchVal, setEngineDBatchVal] = useState(10);
+
+            const [dialog, setDialog] = useState(null);
+            const showAlert = (message) => setDialog({ message });
+            const showConfirm = (message, onConfirm) => setDialog({ message, onConfirm });
+
+            const MAX_LOGS_DISPLAY = 500;
+
+            useEffect(() => {
+                if (!allCampaignMeta || allCampaignMeta.length === 0) return;
+                const spuSet = new Set();
+                allCampaignMeta.forEach(camp => {
+                    if (!selectedPortfolios.includes('ALL') && !selectedPortfolios.includes(camp.portfolio)) return;
+                    if (camp.state !== 'enabled' && camp.state !== '已启用') return;
+                    const segments = camp.cName.split(/[-_ \/]+/);
+                    for (const seg of segments) {
+                        if (!/[\u4e00-\u9fa5]/.test(seg) && seg.length >= 4 && /[A-Za-z0-9]/.test(seg)) { spuSet.add(seg.toUpperCase()); break; }
+                    }
+                });
+                const spuArray = Array.from(spuSet).sort();
+                setExtractedSpus(spuArray);
+                let autoRules = spuArray.map((spu, i) => ({ id: Date.now() + i, keyword: spu, targetAcos: 25, negClick: 25, negSpend: 15.0, negAcos: 30, _selected: true }));
+                autoRules.push({ id: Date.now() + 10000, keyword: '', targetAcos: 25, negClick: 25, negSpend: 15.0, negAcos: 30, _selected: true });
+                setSpuRules(autoRules);
+            }, [allCampaignMeta, selectedPortfolios]);
+
+            const handleParamChange = (e) => {
+                const { name, value, type, checked } = e.target;
+                const finalValue = type === 'checkbox' ? checked : (parseFloat(value) || 0);
+                setParams(prev => ({ ...prev, [name]: finalValue }));
+                setSummary(null); 
+            };
+
+            const addSpuRule = () => setSpuRules([{ id: Date.now(), keyword: '', targetAcos: 25, negClick: 25, negSpend: 15.0, negAcos: 30, _selected: true }, ...spuRules]);
+            const updateSpuRule = (id, field, value) => { setSpuRules(spuRules.map(r => r.id === id ? { ...r, [field]: value } : r)); setSummary(null); };
+            const removeSpuRule = (id) => { setSpuRules(spuRules.filter(r => r.id !== id)); setSummary(null); };
+
+            const getVal = (row, keys) => {
+                const rowKeys = Object.keys(row);
+                for (let k of keys) {
+                    const lowerK = String(k).trim().toLowerCase();
+                    const matchedKey = rowKeys.find(rk => String(rk).trim().toLowerCase() === lowerK);
+                    if (matchedKey && row[matchedKey] !== undefined && row[matchedKey] !== null) return String(row[matchedKey]).trim();
+                }
+                return "";
+            };
+
+            const getMetric = (row, possibleKeys) => {
+                const rowKeys = Object.keys(row);
+                for (let pk of possibleKeys) {
+                    const lowerPk = String(pk).trim().toLowerCase();
+                    const matched = rowKeys.find(k => String(k).trim().toLowerCase() === lowerPk);
+                    if (matched && row[matched] !== undefined && row[matched] !== '') {
+                        const val = String(row[matched]).replace(/[,%\$]/g, '').trim();
+                        const parsed = parseFloat(val);
+                        return isNaN(parsed) ? 0 : parsed;
+                    }
+                }
+                return 0;
+            };
+
+            const parseAmzDate = (dateStr) => {
+                if (!dateStr) return null;
+                dateStr = String(dateStr).trim().replace(/\./g, '/').replace(/-/g, '/');
+                if (/^\d{8}$/.test(dateStr)) return new Date(parseInt(dateStr.slice(0,4)), parseInt(dateStr.slice(4,6))-1, parseInt(dateStr.slice(6,8)));
+                const d = new Date(dateStr);
+                if (!isNaN(d.getTime())) return d;
+                return null;
+            };
+
+            const handleManagerFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    try {
+                        const workbook = window.XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
+                        const data = window.XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+                        const newMap = {};
+                        data.forEach(row => { if (row.length >= 2 && row[0] && row[1]) newMap[String(row[0]).trim().toUpperCase()] = String(row[1]).trim(); });
+                        setManagerMap(newMap);
+                        showAlert(`成功导入 ${Object.keys(newMap).length} 条负责人映射规则！`);
+                    } catch (err) { showAlert("读取 Excel 失败：" + err.message); }
+                };
+                reader.readAsArrayBuffer(file);
+            };
+
+            const handleNegFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    try {
+                        let workbook;
+                        if (file.name.toLowerCase().endsWith('.csv')) workbook = window.XLSX.read(evt.target.result, { type: 'string' });
+                        else workbook = window.XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
+                        
+                        const data = window.XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+                        if (data.length < 2) throw new Error("表格数据不足或为空");
+
+                        const headers = data[0].map(h => String(h).trim().toLowerCase());
+                        const kwIdx = headers.findIndex(h => h.includes('keyword') || h.includes('关键词'));
+                        const matchIdx = headers.findIndex(h => h.includes('match type') || h.includes('匹配类型'));
+
+                        if (kwIdx === -1) throw new Error("未找到带有 'Keyword' 或 '关键词' 的表头列");
+
+                        let newExacts = [];
+                        let newPhrases = [];
+
+                        for (let i = 1; i < data.length; i++) {
+                            const row = data[i];
+                            if (!row || !row[kwIdx]) continue;
+                            const kw = String(row[kwIdx]).trim();
+                            if (!kw) continue;
+
+                            let matchType = 'phrase'; 
+                            if (matchIdx !== -1 && row[matchIdx]) {
+                                const m = String(row[matchIdx]).toLowerCase();
+                                if (m.includes('exact') || m.includes('精准')) matchType = 'exact';
+                            }
+                            if (matchType === 'exact') newExacts.push(kw);
+                            else newPhrases.push(kw);
+                        }
+
+                        setGlobalNegState(prev => {
+                            const exactList = prev.exact ? prev.exact.split('\n').map(s=>s.trim()).filter(s=>s) : [];
+                            const phraseList = prev.phrase ? prev.phrase.split('\n').map(s=>s.trim()).filter(s=>s) : [];
+                            return { 
+                                ...prev, 
+                                exact: Array.from(new Set([...exactList, ...newExacts])).join('\n'), 
+                                phrase: Array.from(new Set([...phraseList, ...newPhrases])).join('\n') 
+                            };
+                        });
+                        showAlert(`✅ 成功读取否词文件！新增了 ${newExacts.length} 个精准否定，${newPhrases.length} 个词组否定。已自动为您拼接并去重。`);
+                    } catch (err) { showAlert("解析否词库失败：" + err.message); }
+                };
+                if (file.name.toLowerCase().endsWith('.csv')) reader.readAsText(file, 'utf-8'); 
+                else reader.readAsArrayBuffer(file);
+            };
+
+            const handleFileUpload = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                setIsProcessing(true); setProgressMsg("正在极速解析底层数据..."); setSummary(null); setFileData(null); setLogFilter('all'); setLogSearchText(''); setLogSortBy('default'); setSelectedLogIds(new Set()); setEngineDMatched(null);
+
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    setTimeout(() => {
+                        try {
+                            if (!window.XLSX) { showAlert("Excel 解析库尚未加载完成，请稍后再试！"); setIsProcessing(false); return; }
+                            
+                            let workbook;
+                            if (file.name.toLowerCase().endsWith('.csv')) workbook = window.XLSX.read(evt.target.result, { type: 'string' });
+                            else { const data = new Uint8Array(evt.target.result); workbook = window.XLSX.read(data, { type: 'array' }); }
+                            
+                            const targetSheetName = workbook.SheetNames.find(n => n.includes('Sponsored Products') || n.includes('商品推广')) || workbook.SheetNames[0];
+                            const worksheet = workbook.Sheets[targetSheetName];
+                            
+                            const rawSheetData = window.XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                            if(rawSheetData.length === 0) throw new Error("表格数据为空");
+                            
+                            let headerRowIndex = 0;
+                            for(let i=0; i<Math.min(10, rawSheetData.length); i++) {
+                                if(rawSheetData[i] && rawSheetData[i].length > 5 && rawSheetData[i].some(c => String(c).toLowerCase().includes('entity') || String(c).includes('实体'))) { headerRowIndex = i; break; }
+                            }
+
+                            const originalHeaders = rawSheetData[headerRowIndex] || [];
+                            const errorCols = ['original sheet', 'original record #', 'error type', 'error code', 'error message', 'optimizer note', '初始工作表', '初始记录 #', '错误类型', '错误代码', '错误消息'];
+                            const cleanHeaders = originalHeaders.filter(h => h && !errorCols.includes(String(h).trim().toLowerCase()));
+                            const jsonData = window.XLSX.utils.sheet_to_json(worksheet, { range: headerRowIndex, raw: false });
+                            
+                            let currentWaterfallCampId = ''; let currentWaterfallAdgId = ''; let currentWaterfallCampName = ''; 
+                            const h_campId_exact = cleanHeaders.find(h => ['campaign id', '广告活动编号', '广告活动 id'].includes(String(h).trim().toLowerCase())) || 'Campaign ID';
+                            const h_adgId_exact = cleanHeaders.find(h => ['ad group id', '广告组编号', '广告组 id'].includes(String(h).trim().toLowerCase())) || 'Ad Group ID';
+                            const h_campName_exact = cleanHeaders.find(h => ['campaign name (informational only)', '广告活动名称（仅供参考）', 'campaign name', '广告活动名称'].includes(String(h).trim().toLowerCase())) || 'Campaign Name (Informational only)';
+
+                            const campNameToId = new Map(); const adgNameToId = new Map(); const tempAutoCampIds = new Set(); 
+
+                            jsonData.forEach(row => {
+                                const entity = String(getVal(row, ['Entity', '实体', '实体层级', 'Record Type'])).trim().toLowerCase();
+                                const cId = getVal(row, ['Campaign Id', '广告活动编号', '广告活动 ID', 'Campaign ID']);
+                                const cName = getVal(row, ['Campaign Name (Informational only)', '广告活动名称（仅供参考）', 'Campaign Name', '广告活动名称']);
+                                const aId = getVal(row, ['Ad Group Id', '广告组编号', '广告组 ID', 'Ad Group ID']);
+                                const aName = getVal(row, ['Ad Group Name (Informational only)', '广告组名称（仅供参考）', 'Ad Group Name', '广告组名称']);
+
+                                if ((entity === 'campaign' || entity === '广告活动') && cId && cName) {
+                                    campNameToId.set(String(cName).trim().toLowerCase(), String(cId).trim());
+                                    if (cName.includes('简化') || cName.includes('自动化')) tempAutoCampIds.add(String(cId).trim());
+                                }
+                                if ((entity === 'ad group' || entity === '广告组') && cId && aId && aName) {
+                                    adgNameToId.set(String(cId).trim() + '||' + String(aName).trim().toLowerCase(), String(aId).trim());
+                                }
+                            });
+
+                            jsonData.forEach(row => {
+                                const entity = String(getVal(row, ['Entity', '实体', '实体层级', 'Record Type'])).trim().toLowerCase();
+                                let cId = getVal(row, ['Campaign Id', '广告活动编号', '广告活动 ID', 'Campaign ID']);
+                                let aId = getVal(row, ['Ad Group Id', '广告组编号', '广告组 ID', 'Ad Group ID']);
+                                let cName = getVal(row, ['Campaign Name (Informational only)', '广告活动名称（仅供参考）', 'Campaign Name', '广告活动名称']);
+                                const aName = getVal(row, ['Ad Group Name (Informational only)', '广告组名称（仅供参考）', 'Ad Group Name', '广告组名称']);
+
+                                if (entity === 'campaign' || entity === '广告活动') { if (cId) currentWaterfallCampId = String(cId).trim(); if (cName) currentWaterfallCampName = String(cName).trim(); currentWaterfallAdgId = ''; } 
+                                else if (entity === 'ad group' || entity === '广告组') { if (cId) currentWaterfallCampId = String(cId).trim(); if (cName) currentWaterfallCampName = String(cName).trim(); if (aId) currentWaterfallAdgId = String(aId).trim(); }
+
+                                if (!cId) {
+                                    let resolvedCid = '';
+                                    if (cName && campNameToId.has(String(cName).trim().toLowerCase())) resolvedCid = campNameToId.get(String(cName).trim().toLowerCase()); else if (currentWaterfallCampId) resolvedCid = currentWaterfallCampId;
+                                    if (resolvedCid) { row[h_campId_exact] = resolvedCid; cId = resolvedCid; }
+                                }
+                                if (!cName) {
+                                    let resolvedCName = '';
+                                    if (currentWaterfallCampName) resolvedCName = currentWaterfallCampName;
+                                    if (resolvedCName) { row[h_campName_exact] = resolvedCName; cName = resolvedCName; }
+                                }
+                                if (!aId && !entity.includes('campaign') && entity !== 'bidding adjustment' && entity !== '竞价方案') {
+                                    let resolvedAid = '';
+                                    if (cId && aName && adgNameToId.has(String(cId).trim() + '||' + String(aName).trim().toLowerCase())) resolvedAid = adgNameToId.get(String(cId).trim() + '||' + String(aName).trim().toLowerCase()); else if (currentWaterfallAdgId) resolvedAid = currentWaterfallAdgId;
+                                    if (resolvedAid) row[h_adgId_exact] = resolvedAid;
+                                }
+                            });
+
+                            const stSheetName = workbook.SheetNames.find(n => n.includes('Search Term Report') || n.includes('搜索词报告'));
+                            const stData = stSheetName ? window.XLSX.utils.sheet_to_json(workbook.Sheets[stSheetName], { raw: false }) : null;
+
+                            const allActiveCampaigns = []; const tempDedupSet = new Set(); const tempActiveAdGroups = new Set();
+                            const spuSet = new Set(); const tempCampStartDates = new Map(); const tempCampStrategies = new Map(); 
+                            const tempPortfolios = new Set(); const allCampsMeta = [];
+
+                            jsonData.forEach(row => {
+                                const entity = getVal(row, ['Entity', '实体', '实体层级', 'Record Type']).toLowerCase();
+                                const state = getVal(row, ['State', '状态', 'Status']).toLowerCase();
+                                const cName = getVal(row, ['Campaign Name', '广告活动名称', 'Campaign Name (Informational only)']);
+                                const cId = getVal(row, ['Campaign Id', '广告活动编号', '广告活动 ID', 'Campaign ID']);
+                                const aId = getVal(row, ['Ad Group Id', '广告组编号', '广告组 ID', 'Ad Group ID']);
+                                const pNameStrRaw = getVal(row, ['Portfolio Name', '广告组合名称', 'Portfolio Name (Informational only)', '广告组合名称（仅供参考）']);
+                                const pNameStr = pNameStrRaw ? String(pNameStrRaw).toUpperCase().trim() : '';
+                                
+                                if (pNameStr !== '') tempPortfolios.add(pNameStr);
+                                if (aId && (state === 'enabled' || state === 'paused' || state === '已启用' || state === '已暂停')) tempActiveAdGroups.add(aId);
+
+                                if ((entity === 'campaign' || entity === '广告活动') && state !== 'archived' && state !== '已归档') {
+                                    allActiveCampaigns.push({ cId, cName }); allCampsMeta.push({ cId, cName, portfolio: pNameStr, state });
+                                    tempCampStrategies.set(String(cId).trim(), getVal(row, ['Bidding Strategy', '竞价策略', 'Bidding strategy']).toLowerCase());
+                                    if (selectedPortfolios.includes('ALL') || selectedPortfolios.includes(pNameStr)) {
+                                        const isAutomated = cName.includes('简化') || cName.includes('自动化');
+                                        if (!isAutomated) { const segments = cName.split(/[-_ \/]+/); for (const seg of segments) { if (!/[\u4e00-\u9fa5]/.test(seg) && seg.length >= 4 && /[A-Za-z0-9]/.test(seg)) { spuSet.add(seg.toUpperCase()); break; } } }
+                                    }
+                                    const sDate = parseAmzDate(getVal(row, ['Start Date', '开始日期'])); if (sDate) tempCampStartDates.set(String(cId).trim(), sDate);
+                                }
+                                
+                                if (entity.includes('negative') || entity.includes('否定')) {
+                                    const kw = getVal(row, ['Keyword Text', '关键词文本']).toLowerCase(); const expr = getVal(row, ['Product Targeting Expression', '商品投放表达式', 'Product targeting expression']).toLowerCase();
+                                    const matchTypeRaw = getVal(row, ['Match Type', '匹配类型']).toLowerCase(); const isCampLvl = entity.includes('campaign') || entity.includes('广告活动') || !aId;
+                                    let matchType = matchTypeRaw.includes('exact') || matchTypeRaw.includes('精准') ? 'exact' : 'phrase';
+
+                                    if (kw) tempDedupSet.add(`CAMP_${cId}_${kw}_${matchType}`); else if (!isCampLvl && kw) tempDedupSet.add(`ADG_${cId}_${aId}_${kw}_${matchType}`);
+                                    if (expr) tempDedupSet.add(`CAMP_${cId}_${expr}`); else if (!isCampLvl && expr) tempDedupSet.add(`ADG_${cId}_${aId}_${expr}`);
+                                }
+                            });
+
+                            const spuArray = Array.from(spuSet).sort(); setExtractedSpus(spuArray); setActiveCampaigns(allActiveCampaigns);
+                            setDedupSet(tempDedupSet); setActiveAdGroupIds(tempActiveAdGroups); setCampaignStartDates(tempCampStartDates);
+                            setCampaignStrategies(tempCampStrategies); setAutomatedCampaignIds(tempAutoCampIds);
+                            setAvailablePortfolios(Array.from(tempPortfolios).sort()); setAllCampaignMeta(allCampsMeta);
+
+                            let autoGeneratedRules = spuArray.map((spu, index) => ({ id: Date.now() + index, keyword: spu, targetAcos: 25, negClick: 25, negSpend: 15.0, negAcos: 30, _selected: true }));
+                            autoGeneratedRules.push({ id: Date.now() + 10000, keyword: '', targetAcos: 25, negClick: 25, negSpend: 15.0, negAcos: 30, _selected: true });
+                            setSpuRules(autoGeneratedRules);
+
+                            setFileData({ originalWorkbook: null, sheetName: targetSheetName, headers: cleanHeaders, data: jsonData, stData: stData, fileName: file.name });
+                            setIsProcessing(false);
+                        } catch (error) { console.error(error); showAlert("解析出现异常：" + error.message); setIsProcessing(false); }
+                    }, 50);
+                };
+
+                if (file.name.toLowerCase().endsWith('.csv')) reader.readAsText(file, 'utf-8'); 
+                else reader.readAsArrayBuffer(file);
+            };
+
+            const handleChurnUpload = async (e) => {
+                const files = Array.from(e.target.files);
+                if (files.length === 0) return;
+                setIsProcessing(true); setProgressMsg(`正在解析 ${files.length} 个流失率报告...`); setEngineCSummary(null); setChurnLogSearchText(''); setChurnLogSortBy('default'); setSelectedChurnLogIds(new Set());
+
+                let allChurnData = []; let fileNames = [];
+                for (const file of files) {
+                    fileNames.push(file.name);
+                    await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (evt) => {
+                            try {
+                                let workbook = file.name.toLowerCase().endsWith('.csv') ? window.XLSX.read(evt.target.result, { type: 'string' }) : window.XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
+                                workbook.SheetNames.forEach(sheetName => { const sheetData = window.XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { raw: false }); allChurnData = allChurnData.concat(sheetData); });
+                                resolve();
+                            } catch (err) { resolve(); }
+                        };
+                        if (file.name.toLowerCase().endsWith('.csv')) reader.readAsText(file, 'utf-8'); 
+                        else reader.readAsArrayBuffer(file);
+                    });
+                }
+                setChurnFileData({ data: allChurnData, fileName: fileNames.join(', '), sheetName: `全维度矩阵 (${files.length} 个文件)` });
+                setIsProcessing(false);
+            };
+
+            const handleEngineCProcess = () => {
+                if (!fileData || !fileData.data) { showAlert("请先在上方导入底层数据源 (Bulk File)！"); return; }
+                if (!churnFileData || !churnFileData.data) { showAlert("请先导入流失率分析报告！"); return; }
+                setIsProcessing(true); setSelectedChurnLogIds(new Set());
+
+                setTimeout(() => {
+                    try {
+                        const badCampaigns = new Map(); const badSkus = new Map(); let scannedChurnRows = 0;
+                        
+                        churnFileData.data.forEach(row => {
+                            const campName = getVal(row, ['🎯 广告活动名称', '🎯广告活动名称', '广告活动名称', '广告活动', 'campaign', 'campaign name', 'campaign_name']);
+                            const asin = getVal(row, ['🏷️ 广告asin', '🏷️广告asin', '广告asin', 'asin', 'sku', '商品', 'advertised asin']);
+                            const churnRaw = getVal(row, ['📉 流失率', '📉流失率', '流失率', 'churn', 'churn rate', '顾客流失率', '客户流失率']);
+                            
+                            if (campName && churnRaw !== "") {
+                                scannedChurnRows++; let rate = 0; const strVal = String(churnRaw).trim();
+                                if (strVal.includes('%')) { rate = parseFloat(strVal.replace('%', '')); } else { const floatVal = parseFloat(strVal); rate = floatVal <= 1 ? floatVal * 100 : floatVal; }
+                                
+                                let orders = 999; 
+                                const ordersRaw = getVal(row, ['🛒 该变体总转化单量(adv)', '🛒 该活动总转化单量(adv)', '🛒该变体总转化单量(adv)', '🛒该活动总转化单量(adv)', '🛒 该变体总销售量(adv)', '🛒 该活动总销售量(adv)', '🛒该变体总销售量(adv)', '🛒该活动总销售量(adv)', '该变体总转化单量(adv)', '该活动总转化单量(adv)', '该变体总销售量(adv)', '该活动总销售量(adv)', '总转化次数', '总转化单量', '总销售单量', '总销售量', 'orders', '订单', '订单量', '订单数', '总订单', '总订单数', '7天总订单数', '14天总订单数', '30天总订单数']);
+                                if (ordersRaw !== "") { const parsedOrders = parseInt(String(ordersRaw).replace(/[,]/g, ''), 10); if (!isNaN(parsedOrders)) orders = parsedOrders; }
+                                
+                                if (!isNaN(rate) && rate >= engineCState.threshold && orders >= engineCState.minOrders) {
+                                    const cNameKey = campName.trim().toLowerCase().replace(/\s+/g, ' ');
+                                    badCampaigns.set(cNameKey, { campName, status: 'not_found', orders, rate: rate.toFixed(1) });
+                                    if (asin) badSkus.set(`${cNameKey}||${asin.trim().toUpperCase()}`, { campName, asin: asin.trim().toUpperCase(), status: 'not_found', orders, rate: rate.toFixed(1) });
+                                }
+                            }
+                        });
+
+                        const cLogs = []; const cExport = [];
+                        const h_entity = fileData.headers.find(h => String(h).trim().toLowerCase() === 'entity' || String(h).trim() === '实体层级' || String(h).trim() === '实体' || String(h).trim() === 'record type') || 'Entity';
+                        const h_state = fileData.headers.find(h => String(h).trim().toLowerCase() === 'state' || String(h).trim() === '状态' || String(h).trim() === 'status') || 'State';
+                        const h_op = fileData.headers.find(h => String(h).trim().toLowerCase() === 'operation' || String(h).trim() === '操作') || 'Operation';
+
+                        fileData.data.forEach((originalRow, index) => {
+                            const row = { ...originalRow };
+                            const campName = getVal(row, ['Campaign Name (Informational only)', '广告活动名称（仅供参考）', 'Campaign Name', '广告活动名称']);
+                            const campIdStr = String(getVal(row, ['Campaign Id', '广告活动编号', '广告活动 ID', 'Campaign ID'])).trim();
+                            const isAutomated = (campName && (campName.includes('简化') || campName.includes('自动化'))) || automatedCampaignIds.has(campIdStr);
+                            row.__isAutomated = isAutomated;
+
+                            if (!campName && !isAutomated) return; 
+
+                            const safeCampName = campName || '未知活动(ID追踪匹配)'; const cNameKey = safeCampName.trim().toLowerCase().replace(/\s+/g, ' ');
+                            const entityStr = String(getVal(row, [h_entity])).toLowerCase(); const stateStr = String(getVal(row, [h_state])).toLowerCase();
+                            const isCampaign = entityStr === 'campaign' || entityStr === '广告活动'; const isSku = ['product ad', '商品广告', 'ad', '广告', '商品推广广告'].includes(entityStr) || (h_entity && String(originalRow[h_entity]).includes('Product Ad'));
+
+                            let shouldPause = false; let targetName = ''; let logType = ''; let reasonStr = '';
+
+                            if (isCampaign && (engineCState.actionType === 'campaign_only' || engineCState.actionType === 'campaign_and_sku')) {
+                                if (badCampaigns.has(cNameKey)) {
+                                    if (['paused', 'archived', '已暂停', '已归档'].includes(stateStr)) badCampaigns.get(cNameKey).status = 'already_paused';
+                                    else { badCampaigns.get(cNameKey).status = 'paused_now'; shouldPause = true; targetName = '[广告活动] ' + safeCampName; logType = 'pause_campaign'; reasonStr = `流失率 ${badCampaigns.get(cNameKey).rate}% ≥ ${engineCState.threshold}% 且单量(${badCampaigns.get(cNameKey).orders}) ≥ ${engineCState.minOrders}`; }
+                                }
+                            } 
+                            
+                            if (isSku && (engineCState.actionType === 'sku_only' || engineCState.actionType === 'campaign_and_sku')) {
+                                const skuKey = (getVal(row, ['SKU']) || '').trim().toUpperCase(); const asinKey = (getVal(row, ['ASIN (Informational only)', 'ASIN（仅供参考）']) || '').trim().toUpperCase();
+                                let matchedKey = skuKey && badSkus.has(`${cNameKey}||${skuKey}`) ? `${cNameKey}||${skuKey}` : (asinKey && badSkus.has(`${cNameKey}||${asinKey}`) ? `${cNameKey}||${asinKey}` : null);
+                                if (matchedKey) {
+                                    if (['paused', 'archived', '已暂停', '已归档'].includes(stateStr)) badSkus.get(matchedKey).status = 'already_paused';
+                                    else { badSkus.get(matchedKey).status = 'paused_now'; shouldPause = true; targetName = '[变体/SKU] ' + (skuKey || asinKey || '未知'); logType = 'pause_sku'; reasonStr = `变体流失率 ${badSkus.get(matchedKey).rate}% ≥ ${engineCState.threshold}% 且单量(${badSkus.get(matchedKey).orders}) ≥ ${engineCState.minOrders}`; }
+                                }
+                            }
+
+                            if (shouldPause) {
+                                if (safeCampName.includes('SP-ZD-COUTGO 2-2') || safeCampName.includes('SP-SD-COUTGO 2-2')) return;
+                                const pausedStateValue = (h_state === '状态' || h_state === 'Status') ? '已暂停' : 'paused';
+                                row[h_state] = pausedStateValue; row[h_op] = 'Update'; row.__changed_state = true;
+                                cExport.push(row);
+                                cLogs.push({ logId: cLogs.length, isAutomated, type: 'pause', filterCategory: logType, campaign: safeCampName, target: targetName, action: '流失率靶向熔断', metrics: `置信条件: ≥ ${engineCState.threshold}% & ≥ ${engineCState.minOrders}单`, reason: reasonStr, result: `状态 ➔ 已暂停`, dataIndex: cExport.length - 1, editType: 'state', colName: h_state, oldVal: stateStr, newVal: pausedStateValue });
+                            }
+                        });
+
+                        let pausedCampCount = 0, alreadyPausedCampCount = 0, notFoundCampCount = 0; badCampaigns.forEach(v => { if (v.status === 'paused_now') pausedCampCount++; else if (v.status === 'already_paused') alreadyPausedCampCount++; else notFoundCampCount++; });
+                        let pausedSkuCount = 0, alreadyPausedSkuCount = 0, notFoundSkuCount = 0; badSkus.forEach(v => { if (v.status === 'paused_now') pausedSkuCount++; else if (v.status === 'already_paused') alreadyPausedSkuCount++; else notFoundSkuCount++; });
+                        setEngineCSummary({ scannedChurnRows, badCampaignsTotal: badCampaigns.size, pausedCampCount, alreadyPausedCampCount, notFoundCampCount, badSkusTotal: badSkus.size, pausedSkuCount, alreadyPausedSkuCount, notFoundSkuCount, processedData: cExport, unifiedLogs: cLogs });
+                        setIsProcessing(false);
+                    } catch (e) { showAlert("流失率引擎执行失败：" + e.message); setIsProcessing(false); }
+                }, 500);
+            };
+
+            const handleEngineCLogEdit = (logId, val) => {
+                setEngineCSummary(prev => {
+                    const next = { ...prev }; next.unifiedLogs = [...prev.unifiedLogs];
+                    const logIdx = next.unifiedLogs.findIndex(l => l.logId === logId);
+                    if (logIdx === -1) return prev;
+                    const log = { ...next.unifiedLogs[logIdx] }; log.newVal = val; next.unifiedLogs[logIdx] = log;
+                    if (log.editType === 'state') {
+                        next.processedData = [...prev.processedData]; const targetRow = { ...next.processedData[log.dataIndex] };
+                        targetRow[log.colName] = val === 'paused' ? '已暂停' : '已启用'; targetRow.__changed_state = true; next.processedData[log.dataIndex] = targetRow;
+                    }
+                    return next;
+                });
+            };
+
+            const handleBulkChurnRevert = () => {
+                if (selectedChurnLogIds.size === 0) { showAlert("请先勾选需要赦免的日志项目！"); return; }
+                showConfirm(`确定要批量赦免勾选的 ${selectedChurnLogIds.size} 项熔断建议吗？系统将其恢复为“已启用”状态。`, () => {
+                    setEngineCSummary(prev => {
+                        const next = { ...prev }; next.unifiedLogs = [...prev.unifiedLogs]; next.processedData = [...prev.processedData];
+                        selectedChurnLogIds.forEach(logId => {
+                            const logIdx = next.unifiedLogs.findIndex(l => l.logId === logId);
+                            if (logIdx === -1) return;
+                            const log = { ...next.unifiedLogs[logIdx] }; log.newVal = 'enabled'; next.unifiedLogs[logIdx] = log;
+                            const targetRow = { ...next.processedData[log.dataIndex] }; targetRow[log.colName] = '已启用'; targetRow.__changed_state = true; next.processedData[log.dataIndex] = targetRow;
+                        });
+                        return next;
+                    });
+                    setSelectedChurnLogIds(new Set()); 
+                });
+            };
+
+            const handleEngineCExport = () => {
+                if (!engineCSummary || engineCSummary.processedData.length === 0) { showAlert("当前没有发生 any 有效的流失率拦截，无需导出。"); return; }
+                const exportableData = engineCSummary.processedData.filter(row => !row.__isAutomated && String(getVal(row, ['Campaign Id', '广告活动编号', '广告活动 ID', 'Campaign ID'])).trim() !== '');
+                if (exportableData.length === 0) { showAlert("过滤掉简化/自动化广告后，当前没有需要导出的流失率拦截记录。"); return; }
+
+                const headers = fileData.headers || [];
+                const h_op = headers.find(h => String(h).trim().toLowerCase() === 'operation' || String(h).trim() === '操作') || 'Operation';
+                const isIdCol = (hLower) => hLower.includes('id') || hLower.includes('编号');
+                const isNumericCol = (hLower) => hLower === 'bid' || hLower === '竞价' || hLower === 'percentage' || hLower === '百分比' || hLower === 'max bid';
+                const allowedColsForUpdate = [ 'product', '产品', 'entity', '实体层级', '实体', 'record type', 'operation', '操作', 'campaign id', '广告活动编号', '广告活动 id', 'ad group id', '广告组编号', '广告组 id', 'keyword id', '关键词编号', '关键词 id', 'product targeting id', '商品投放 id', '商品投放编号', 'ad id', '广告编号', '广告 id', 'portfolio id', '广告组合编号', '广告组合 id', 'state', '状态', 'status', 'bid', '竞价', 'max bid', 'percentage', '百分比', 'placement', '广告位' ];
+                const h_entity_exact = headers.find(h => String(h).trim().toLowerCase() === 'entity' || String(h).trim() === '实体层级' || String(h).trim() === '实体' || String(h).trim() === 'record type') || 'Entity';
+
+                const sanitizedDataToExport = exportableData.map(row => {
+                    const cleanRow = {}; const opVal = String(row[h_op] || getVal(row, ['Operation', '操作'])).trim().toLowerCase();
+                    const entityVal = String(row[h_entity_exact] || getVal(row, ['Entity', '实体', '实体层级', 'Record Type'])).trim().toLowerCase();
+                    
+                    headers.forEach(h => {
+                        const hStrLower = String(h).trim().toLowerCase(); let val = row[h];
+                        if (val === undefined) { const matchedKey = Object.keys(row).find(rk => String(rk).trim().toLowerCase() === hStrLower); if (matchedKey) val = row[matchedKey]; }
+                        
+                        if (opVal === 'update') { 
+                            let isForbiddenForUpdate = false;
+                            const isCampId = hStrLower === 'campaign id' || hStrLower === '广告活动编号' || hStrLower === '广告活动 id';
+                            const isAdgId = hStrLower === 'ad group id' || hStrLower === '广告组编号' || hStrLower === '广告组 id';
+                            
+                            if (entityVal.includes('keyword') || entityVal.includes('关键词') || entityVal.includes('targeting') || entityVal.includes('投放')) { if (isCampId || isAdgId) isForbiddenForUpdate = true; } 
+                            else if (entityVal === 'ad group' || entityVal === '广告组') { if (isCampId) isForbiddenForUpdate = true; } 
+                            else if (['product ad', '商品广告', 'ad', '广告', '商品推广广告'].includes(entityVal)) { if (isCampId || isAdgId) isForbiddenForUpdate = true; } 
+                            else if (entityVal === 'bidding adjustment' || entityVal === '竞价方案') { if (isAdgId) isForbiddenForUpdate = true; }
+                            if (['keyword text', '关键词文本', 'match type', '匹配类型', 'product targeting expression', '商品投放表达式', 'sku', 'asin (informational only)', 'asin（仅供参考）'].includes(hStrLower)) isForbiddenForUpdate = true;
+
+                            if (allowedColsForUpdate.includes(hStrLower) && !isForbiddenForUpdate) {
+                                if (hStrLower.includes('id') || hStrLower.includes('编号')) cleanRow[h] = val != null && val !== '' ? String(val).trim() : '';
+                                else if (hStrLower === 'bid' || hStrLower === '竞价' || hStrLower === 'percentage' || hStrLower === '百分比' || hStrLower === 'max bid') cleanRow[h] = val != null && val !== '' ? parseFloat(String(val).replace(/[,%\$]/g, '')) : '';
+                                else cleanRow[h] = val != null ? val : '';
+                            } else cleanRow[h] = ''; 
+                        } else cleanRow[h] = val != null ? val : '';
+                    });
+                    return cleanRow;
+                });
+                
+                const newWs = window.XLSX.utils.json_to_sheet(sanitizedDataToExport, { header: headers }); const newWb = window.XLSX.utils.book_new();
+                window.XLSX.utils.book_append_sheet(newWb, newWs, Object.keys(sanitizedDataToExport[0] || {}).some(k => String(k).includes('广告活动') || String(k).includes('商品推广')) ? '商品推广活动' : 'Sponsored Products Campaigns');
+                window.XLSX.writeFile(newWb, `EngineC_ChurnCleanser_${new Date().toISOString().slice(0,10).replace(/-/g,"")}.xlsx`);
+            };
+
+            const handleEngineAProcess = () => {
+                if (!fileData || !fileData.data) return;
+                setIsProcessing(true); setLogFilter('all'); setLogSearchText(''); setLogSortBy('default'); setSelectedLogIds(new Set()); 
+
+                setTimeout(() => {
+                    try {
+                        let modifiedCount = 0; let negativeAddedCount = 0;
+                        let tierCounts = { pausedKw: 0, pausedSku: 0, pausedCampaign: 0, pausedAdGroup: 0, tier1: 0, tier2: 0, tier3: 0, tier4: 0, tosBoost: 0, tosDecrease: 0 };
+                        let skipDetails = { notTargeting: 0, notEnabled: 0, parentNotActive: 0, amazonBug: 0, bidSkippedDueToTimePause: 0, nullBid: 0, spuExcluded: 0, targetMetHold: 0, noConditionMet: 0, parseError: 0, alreadyNegated: 0, parentNotFound: 0, apiError: 0 };
+                        let unifiedLogs = []; let negativeKeywordsToCreate = [];
+                        
+                        const localDedupSet = new Set(dedupSet); 
+                        const sortedSpuRules = [...spuRules].sort((a, b) => b.keyword.length - a.keyword.length);
+                        
+                        const headers = fileData.headers || [];
+                        const h_entity = headers.find(h => String(h).trim().toLowerCase() === 'entity' || String(h).trim() === '实体层级' || String(h).trim() === '实体' || String(h).trim() === 'record type') || 'Entity';
+                        const h_state = headers.find(h => String(h).trim().toLowerCase() === 'state' || String(h).trim() === '状态' || String(h).trim() === 'status') || 'State';
+                        const h_bid = headers.find(h => String(h).trim().toLowerCase() === 'bid' || String(h).trim() === '竞价' || String(h).trim() === 'max bid') || 'Bid';
+                        const h_op = headers.find(h => String(h).trim().toLowerCase() === 'operation' || String(h).trim() === '操作') || 'Operation';
+                        const h_percentage = headers.find(h => String(h).trim().toLowerCase().includes('percentage') || String(h).trim().includes('百分比')) || 'Percentage';
+
+                        const isPortfolioFilterActive = !selectedPortfolios.includes('ALL'); const validCampIds = new Set();
+                        if (isPortfolioFilterActive) { allCampaignMeta.forEach(meta => { if (selectedPortfolios.includes(meta.portfolio)) validCampIds.add(String(meta.cId).trim()); }); }
+
+                        if (fileData.stData && params.enableAutoNegatives) {
+                            const baseRow = fileData.data[0] || {}; const getK = (ch, en) => (ch in baseRow ? ch : en);
+                            fileData.stData.forEach(row => {
+                                const campId = getVal(row, ['Campaign ID', '广告活动编号', '广告活动 ID', 'Campaign Id']); const adgId = getVal(row, ['Ad Group ID', '广告组编号', '广告组 ID', 'Ad Group Id']);
+                                const campIdStr = campId ? String(campId).trim() : ''; const adgIdStr = adgId ? String(adgId).trim() : '';
+                                if (isPortfolioFilterActive && campIdStr && !validCampIds.has(campIdStr)) return;
+
+                                const campName = getVal(row, ['Campaign Name (Informational only)', '广告活动名称（仅供参考）', 'Campaign Name']);
+                                let matchedRule = null; for (const rule of sortedSpuRules) { if (rule.keyword.trim().toLowerCase() === '' || (campName && campName.toLowerCase().includes(rule.keyword.trim().toLowerCase()))) { matchedRule = rule; break; } }
+                                if (!matchedRule) return;
+
+                                const currentNegClick = matchedRule.negClick || params.negClickThreshold; const currentNegSpend = matchedRule.negSpend || params.negSpendThreshold; const currentNegAcos = matchedRule.negAcos || params.negAcosThreshold;
+                                const searchTerm = getVal(row, ['Customer Search Term', '顾客搜索词']); const clicks = parseInt(getMetric(row, ['clicks', '点击量']), 10); const spend = parseFloat(getMetric(row, ['spend', '花费']));
+                                const orders = parseInt(getMetric(row, ['orders', '订单数量', '7天总订单数']), 10); const sales = parseFloat(getMetric(row, ['sales', '销售额', '7天总销售额']));
+                                const acos = sales > 0 ? (spend / sales) * 100 : 0;
+
+                                if (!searchTerm || /^[Bb]0[A-Za-z0-9]{8}$/i.test(searchTerm)) return;
+
+                                const isZeroOrderBad = orders === 0 && (clicks >= currentNegClick || spend >= currentNegSpend); const isAcosBad = orders > 0 && acos > currentNegAcos;
+                                if (isZeroOrderBad || isAcosBad) {
+                                    if (!campIdStr || !adgIdStr || !activeAdGroupIds.has(adgIdStr)) { skipDetails.parentNotFound++; return; }
+                                    const searchT = searchTerm.toLowerCase().trim(); const adgKey = `ADG_${campIdStr}_${adgIdStr}_${searchT}_exact`; const campKey = `CAMP_${campIdStr}_${searchT}_exact`;
+                                    if (localDedupSet.has(adgKey) || localDedupSet.has(campKey)) { skipDetails.alreadyNegated++; return; }
+
+                                    localDedupSet.add(adgKey); negativeAddedCount++;
+                                    const isAutomated = (campName && (campName.includes('简化') || campName.includes('自动化'))) || automatedCampaignIds.has(campIdStr);
+                                    let newNegRow = {}; newNegRow[getK('产品', 'Product')] = getK('商品推广', 'Sponsored Products'); newNegRow[h_entity] = getK('否定关键词', 'Negative Keyword');
+                                    newNegRow[h_op] = 'Create'; newNegRow[getK('广告活动编号', 'Campaign ID')] = campIdStr; newNegRow[getK('广告组编号', 'Ad Group ID')] = adgIdStr;
+                                    newNegRow[getK('关键词文本', 'Keyword Text')] = searchTerm; newNegRow[getK('匹配类型', 'Match Type')] = getK('精准否定', 'Negative Exact');
+                                    newNegRow[h_state] = getK('已启用', 'Enabled'); newNegRow.__ignored = false; newNegRow.__isAutomated = isAutomated; negativeKeywordsToCreate.push(newNegRow);
+                                    const reasonText = isZeroOrderBad ? `[${matchedRule.keyword || '全局'}] 0单触线(${clicks}点/$${spend.toFixed(1)} ≥ ${currentNegClick}点/$${currentNegSpend})` : `[${matchedRule.keyword || '全局'}] ACoS过高(${acos.toFixed(1)}% > ${currentNegAcos}%)`;
+                                    unifiedLogs.push({ logId: unifiedLogs.length, filterCategory: 'negative', isAutomated, type: 'negative', campaign: campName || '未知活动(ID追踪匹配)', target: searchTerm, action: '精准否定', metrics: `花费: $${spend.toFixed(2)} | 点击: ${clicks} | ACoS: ${acos > 0 ? acos.toFixed(1) + '%' : '-'}`, result: `+ 新增否定`, reason: reasonText, editType: 'negative', dataIndex: negativeKeywordsToCreate.length - 1, ignored: false, rawMetrics: { spend, clicks, orders, acos } });
+                                }
+                            });
+                        }
+
+                        const timeBasedPausedCampaignIds = new Set(); const newlyPausedCampaignIds = new Set();
+                        fileData.data.forEach((row) => {
+                            const campIdStr = String(getVal(row, ['Campaign Id', '广告活动编号', '广告活动 ID', 'Campaign ID'])).trim();
+                            if (isPortfolioFilterActive && campIdStr && !validCampIds.has(campIdStr)) return;
+                            const entityStr = String(getVal(row, [h_entity])).toLowerCase(); const stateStr = String(getVal(row, [h_state])).toLowerCase();
+                            if (!['enabled', '已启用'].includes(stateStr)) return;
+                            const isCampaign = entityStr === 'campaign' || entityStr === '广告活动'; const isAdGroup = entityStr === 'ad group' || entityStr === '广告组';
+                            if (!isCampaign && !isAdGroup) return;
+                            const campStartDateObj = campaignStartDates.get(campIdStr); let diffDays = 0;
+                            if (campStartDateObj) diffDays = Math.ceil(Math.abs(new Date() - campStartDateObj) / (1000 * 60 * 60 * 24));
+                            const spend = parseFloat(getMetric(row, ['spend', '花费'])); const orders = parseInt(getMetric(row, ['orders', '订单数量', '订单', '7天总订单数']), 10);
+                            if (orders === 0 && params.enableTimeBasedPause && diffDays >= params.pauseTimeThresholdDays && isCampaign) timeBasedPausedCampaignIds.add(campIdStr);
+                        });
+
+                        const processedData = []; const biddingAdjIndices = []; 
+
+                        fileData.data.forEach((originalRow, index) => {
+                            const row = { ...originalRow }; row.__changed_state = false; row.__changed_bid = false; row.__changed_percentage = false;
+
+                            try {
+                                const campIdStr = String(getVal(row, ['Campaign Id', '广告活动编号', '广告活动 ID', 'Campaign ID'])).trim();
+                                if (isPortfolioFilterActive && campIdStr && !validCampIds.has(campIdStr)) { skipDetails.spuExcluded++; processedData.push(originalRow); return; }
+
+                                const campName = getVal(row, ['Campaign Name (Informational only)', '广告活动名称（仅供参考）', 'Campaign Name', '广告活动名称']);
+                                const isAutomated = (campName && (campName.includes('简化') || campName.includes('自动化'))) || automatedCampaignIds.has(campIdStr); row.__isAutomated = isAutomated;
+
+                                const rowErrMsg = getVal(row, ['Error message', '错误消息', 'Error type', '错误类型']);
+                                if (rowErrMsg && String(rowErrMsg).trim() !== '') { skipDetails.apiError++; processedData.push(row); return; }
+
+                                const entityStr = String(getVal(row, [h_entity])).toLowerCase(); const stateStr = String(getVal(row, [h_state])).toLowerCase();
+                                const campStateStr = String(getVal(row, ['Campaign State (Informational only)', '广告活动状态'])).toLowerCase(); const adgStateStr = String(getVal(row, ['Ad Group State (Informational only)', '广告组状态'])).toLowerCase();
+
+                                if (campStateStr.includes('archived') || campStateStr.includes('已归档') || campStateStr.includes('paused') || campStateStr.includes('已暂停') || adgStateStr.includes('archived') || adgStateStr.includes('已归档') || adgStateStr.includes('paused') || adgStateStr.includes('官方暂停') || adgStateStr.includes('已暂停')) {
+                                    skipDetails.parentNotActive++; processedData.push(row); return;
+                                }
+                                
+                                if (entityStr === 'bidding adjustment' || entityStr === '竞价方案') { biddingAdjIndices.push(processedData.length); processedData.push(row); return; }
+
+                                const isNegative = entityStr.includes('negative') || entityStr.includes('否定');
+                                const isTargeting = !isNegative && ['keyword', 'product targeting', 'targeting expression', '关键词', '商品投放', '投放表达式'].includes(entityStr);
+                                const isProductAd = ['product ad', '商品广告', 'ad', '广告', '商品推广广告'].includes(entityStr);
+                                const isCampaign = entityStr === 'campaign' || entityStr === '广告活动'; const isAdGroup = entityStr === 'ad group' || entityStr === '广告组';
+
+                                if (!isTargeting && !isProductAd && !isCampaign && !isAdGroup) { skipDetails.notTargeting++; processedData.push(row); return; }
+                                if (!['enabled', '已启用'].includes(stateStr)) { skipDetails.notEnabled++; processedData.push(row); return; }
+                                if (String(getVal(row, ['Product Targeting Expression', '商品投放表达式', 'Product targeting expression'])).toLowerCase().includes('keyword-group')) { skipDetails.amazonBug = (skipDetails.amazonBug || 0) + 1; processedData.push(row); return; }
+
+                                let appliedTargetAcos = null; let isMatched = false;
+                                for (const rule of sortedSpuRules) { if (rule.keyword.trim().toLowerCase() === '' || (campName && campName.toLowerCase().includes(rule.keyword.trim().toLowerCase()))) { appliedTargetAcos = parseFloat(rule.targetAcos); isMatched = true; break; } }
+                                if (!isMatched) { skipDetails.spuExcluded++; processedData.push(row); return; }
+
+                                const campStartDateObj = campaignStartDates.get(campIdStr); let diffDays = 0;
+                                if (campStartDateObj) diffDays = Math.ceil(Math.abs(new Date() - campStartDateObj) / (1000 * 60 * 60 * 24));
+
+                                const campStrategyRaw = campaignStrategies.get(campIdStr) || ''; const isUpAndDown = campStrategyRaw.includes('up and down') || campStrategyRaw.includes('提高和降低'); const stratName = isUpAndDown ? '动态(上下)' : '固定/仅降';
+                                const clicks = parseInt(getMetric(row, ['clicks', '点击量']), 10); const impressions = parseInt(getMetric(row, ['impressions', '展示量']), 10);
+                                const spend = parseFloat(getMetric(row, ['spend', '花费'])); const sales = parseFloat(getMetric(row, ['sales', '销售额', '7天总销售额', '14天总销售额', '30 day total sales', '14 day total sales', '30-day total sales']));
+                                const orders = parseInt(getMetric(row, ['orders', '订单数量', '订单', '7天总订单数', '14天总订单数', '30 day total orders', '14 day total orders', '30-day total orders']), 10);
+                                const acos = sales > 0 ? (spend / sales) * 100 : 0; const pausedStateValue = (h_state === '状态' || h_state === 'Status') ? '已暂停' : 'paused';
+                                let isPaused = false; let action = ''; const safeCampNameForLog = campName || '未知活动(ID追踪匹配)';
+
+                                if (isCampaign || isAdGroup) {
+                                    if (orders === 0) {
+                                        if (isCampaign && spend >= params.pauseSpendThresholdCampaign) { isPaused = true; action = `活动级熔断 (0单花费 $${spend} ≥ $${params.pauseSpendThresholdCampaign})`; } 
+                                        else if (isAdGroup && spend >= params.pauseSpendThresholdAdGroup) { isPaused = true; action = `广告组熔断 (0单花费 $${spend} ≥ $${params.pauseSpendThresholdAdGroup})`; }
+                                        if (!isPaused && params.enableTimeBasedPause && diffDays >= params.pauseTimeThresholdDays) { isPaused = true; action = `${isCampaign?'活动':'广告组'}存活超时熔断 (运行 ≥${params.pauseTimeThresholdDays}天 且 0单)`; }
+                                    }
+                                    if (isPaused) {
+                                        modifiedCount++; if (isCampaign) { tierCounts.pausedCampaign++; newlyPausedCampaignIds.add(campIdStr); } if (isAdGroup) { tierCounts.pausedAdGroup++; }
+                                        const targetText = isCampaign ? '[整体广告活动]' : `[广告组] ${getVal(row, ['Ad Group Name', '广告组名称'])}`;
+                                        row[h_state] = pausedStateValue; row[h_op] = 'Update'; row.__changed_state = true;
+                                        unifiedLogs.push({ logId: unifiedLogs.length, isAutomated, filterCategory: isCampaign ? 'pause_campaign' : 'pause_adgroup', type: 'pause', campaign: safeCampNameForLog, target: targetText, action: '宏观拦截暂停', metrics: `花费: $${spend.toFixed(2)} | 订单: ${orders}`, reason: action, dataIndex: processedData.length, editType: 'state', colName: h_state, oldVal: stateStr, newVal: pausedStateValue, rawMetrics: { spend, clicks, impressions: impressions || 0, orders, acos } });
+                                    } else { skipDetails.noConditionMet++; }
+                                    processedData.push(row); return;
+                                }
+
+                                if (timeBasedPausedCampaignIds.has(campIdStr) || newlyPausedCampaignIds.has(campIdStr)) { skipDetails.noConditionMet++; processedData.push(row); return; }
+
+                                if (isProductAd) {
+                                    if (orders === 0) {
+                                        if (clicks >= params.pauseClickThresholdSku || spend >= params.pauseSpendThresholdSku) { isPaused = true; action = `SKU 熔断 (0单超${params.pauseClickThresholdSku}点击或$${params.pauseSpendThresholdSku}花费)`; tierCounts.pausedSku++; } 
+                                        else if (params.enableTimeBasedPause && diffDays >= params.pauseTimeThresholdDays) { isPaused = true; action = `SKU 存活超时熔断 (随活动运行 ≥${params.pauseTimeThresholdDays}天 且 0产出)`; tierCounts.pausedSku++; }
+                                    } else if (orders > 0 && acos >= params.pauseAcosThresholdSku) { isPaused = true; action = `SKU 熔断 (ACoS ≥ ${params.pauseAcosThresholdSku}%)`; tierCounts.pausedSku++; } 
+                                    if (isPaused) {
+                                        modifiedCount++; const targetText = getVal(row, ['SKU', 'ASIN (Informational only)', 'ASIN（仅供参考）']) || '未知SKU';
+                                        row[h_state] = pausedStateValue; row[h_op] = 'Update'; row.__changed_state = true;
+                                        unifiedLogs.push({ logId: unifiedLogs.length, isAutomated, filterCategory: 'pause_sku', type: 'pause', campaign: safeCampNameForLog, target: `[商品] ${targetText}`, action: '停用商品(SKU)', metrics: `花费: $${spend.toFixed(2)} | 点击: ${clicks} | ACoS: ${acos > 0 ? acos.toFixed(2)+'%' : '-'}`, reason: action, dataIndex: processedData.length, editType: 'state', colName: h_state, oldVal: stateStr, newVal: pausedStateValue, rawMetrics: { spend, clicks, impressions: impressions || 0, orders, acos } });
+                                    } else { skipDetails.noConditionMet++; }
+                                    processedData.push(row); return;
+                                }
+                                
+                                if (isTargeting) {
+                                    const sweetSpotThreshold = Math.max(0, appliedTargetAcos - params.acosBuffer);
+
+                                    if (orders === 0) {
+                                        if (clicks >= params.pauseClickThresholdTarget || spend >= params.pauseSpendThresholdTarget) { isPaused = true; action = `投放熔断 (0单超${params.pauseClickThresholdTarget}点击或$${params.pauseSpendThresholdTarget}花费)`; tierCounts.pausedKw++; } 
+                                        else if (params.enableTimeBasedPause && diffDays >= params.pauseTimeThresholdDays) { isPaused = true; action = `投放存活超时熔断 (随活动运行 ≥${params.pauseTimeThresholdDays}天 且 0产出)`; tierCounts.pausedKw++; }
+                                    } else if (orders > 0 && acos >= params.pauseAcosThresholdTarget) { isPaused = true; action = `投放熔断 (ACoS ≥ ${params.pauseAcosThresholdTarget}%)`; tierCounts.pausedKw++; } 
+                                    
+                                    if (isPaused) {
+                                        modifiedCount++; const targetText = getVal(row, ['Keyword Text', '关键词文本', 'Product Targeting Expression', '商品投放表达式']) || '未知实体';
+                                        row[h_state] = pausedStateValue; row[h_op] = 'Update'; row.__changed_state = true;
+                                        unifiedLogs.push({ logId: unifiedLogs.length, isAutomated, filterCategory: 'pause_target', type: 'pause', campaign: safeCampNameForLog, target: targetText, action: '暂停投放', metrics: `花费: $${spend.toFixed(2)} | 曝光: ${impressions} | 点击: ${clicks} | ACoS: ${acos > 0 ? acos.toFixed(2)+'%' : '-'}`, reason: action, dataIndex: processedData.length, editType: 'state', colName: h_state, oldVal: stateStr, newVal: pausedStateValue, rawMetrics: { spend, clicks, impressions: impressions || 0, orders, acos } });
+                                        processedData.push(row); return;
+                                    }
+
+                                    if (params.enableTimeBasedPause) { skipDetails.bidSkippedDueToTimePause++; processedData.push(row); return; }
+
+                                    const bidStr = getMetric(row, ['bid', '竞价', 'max bid']);
+                                    if (bidStr <= 0) { skipDetails.nullBid++; processedData.push(row); return; }
+
+                                    const currentBid = parseFloat(bidStr); const actualCpc = clicks > 0 ? spend / clicks : currentBid;
+                                    let newBid = currentBid; let fCat = ''; let pendingAction = '';
+
+                                    if (orders === 0 && clicks >= params.clickThreshold) {
+                                        const baseDropBid = isUpAndDown ? currentBid : Math.min(currentBid, actualCpc); newBid = baseDropBid * (1 - (params.decreasePcnt / 100)); pendingAction = 'Tier 1 降价止损 (防暴跌)'; fCat = 'tier1';
+                                    } else if (orders > 0 && acos < sweetSpotThreshold) {
+                                        const r = appliedTargetAcos / acos; let targetBid = isUpAndDown ? currentBid * (1 + (r - 1) / Math.max(1, actualCpc / currentBid)) : actualCpc * r;
+                                        newBid = Math.min(targetBid, currentBid * (1 + (params.increasePcnt / 100))); newBid = Math.max(newBid, currentBid * 1.02); pendingAction = 'Tier 2 放量提价 (锚定CPC)'; fCat = 'tier2';
+                                    } else if (orders > 0 && acos >= sweetSpotThreshold && acos <= appliedTargetAcos) {
+                                        skipDetails.targetMetHold++; processedData.push(row); return; 
+                                    } else if (orders > 0 && acos > appliedTargetAcos) {
+                                        const r = appliedTargetAcos / acos; let targetBid = isUpAndDown ? currentBid * (1 - (1 - r) / Math.max(1, actualCpc / currentBid)) : actualCpc * r;
+                                        if (!isUpAndDown) { targetBid = Math.min(targetBid, actualCpc); }
+                                        const floorBid = currentBid * (1 - (params.decreasePcnt / 100)); newBid = Math.max(targetBid, floorBid); pendingAction = 'Tier 3 压制利润线 (防暴跌)'; fCat = 'tier3';
+                                    } else if (impressions < params.impressionThreshold && clicks < params.clickThreshold) {
+                                        newBid = currentBid * (1 + (params.increasePcnt / 100)); pendingAction = impressions === 0 ? 'Tier 4 冷启动破冰' : 'Tier 4 长尾激活'; fCat = 'tier4';
+                                    } else { skipDetails.noConditionMet++; processedData.push(row); return; }
+
+                                    newBid = parseFloat(Math.max(params.minBid, Math.min(params.maxBid, newBid)).toFixed(2));
+
+                                    if (newBid !== currentBid) {
+                                        modifiedCount++; if (fCat === 'tier1') tierCounts.tier1++; else if (fCat === 'tier2') tierCounts.tier2++; else if (fCat === 'tier3') tierCounts.tier3++; else if (fCat === 'tier4') tierCounts.tier4++;
+                                        const targetText = getVal(row, ['Keyword Text', '关键词文本', 'Product Targeting Expression', '商品投放表达式']) || '未知实体';
+                                        row[h_bid] = newBid; row[h_op] = 'Update'; row.__changed_bid = true;
+                                        unifiedLogs.push({ logId: unifiedLogs.length, isAutomated, filterCategory: fCat, type: 'bid', campaign: safeCampNameForLog, target: targetText, action: '竞价调整', metrics: `策略:${stratName} | 实际CPC:$${actualCpc.toFixed(2)} | ACoS:${acos > 0 ? acos.toFixed(2)+'%' : '-'} ➔ 目标${appliedTargetAcos}%`, reason: pendingAction, dataIndex: processedData.length, editType: 'bid', colName: h_bid, oldVal: currentBid, newVal: newBid, rawMetrics: { spend, clicks, impressions: impressions || 0, orders, acos } });
+                                    } else { skipDetails.noConditionMet++; }
+                                    processedData.push(row);
+                                }
+                            } catch (err) { skipDetails.parseError++; processedData.push(row); }
+                        });
+
+                        biddingAdjIndices.forEach(idx => {
+                            const row = processedData[idx];
+                            const placement = getVal(row, ['Placement', '广告位']).toLowerCase();
+
+                            if (placement.includes('top') || placement.includes('顶部')) {
+                                const cId = String(getVal(row, ['Campaign Id', '广告活动编号', '广告活动 ID', 'Campaign ID'])).trim();
+                                const campName = getVal(row, ['Campaign Name (Informational only)', '广告活动名称（仅供参考）', 'Campaign Name', '广告活动名称']) || '未知活动';
+                                const isAutomated = row.__isAutomated;
+                                
+                                if (params.enableTimeBasedPause && (timeBasedPausedCampaignIds.has(cId) || newlyPausedCampaignIds.has(cId))) { return; }
+                                
+                                const spend = parseFloat(getMetric(row, ['spend', '花费']));
+                                const sales = parseFloat(getMetric(row, ['sales', '销售额', '7天总销售额', '14天总销售额', '30 day total sales', '14 day total sales', '30-day total sales']));
+                                const orders = parseInt(getMetric(row, ['orders', '订单数量', '订单', '7天总订单数', '14天总订单数', '30 day total orders', '14 day total orders', '30-day total orders']), 10);
+                                const acos = sales > 0 ? (spend / sales) * 100 : 0;
+                                
+                                let currentPcnt = parseInt(String(row[h_percentage] || '0').replace(/%/g, ''), 10); if (isNaN(currentPcnt)) currentPcnt = 0;
+                                let newPcnt = currentPcnt; let actionStr = ''; let fCat = 'tos_boost';
+
+                                if (orders > 0 && acos <= params.tosTargetAcos) { newPcnt = currentPcnt + params.increaseTosPcnt; actionStr = `首页专属ACoS(${acos.toFixed(1)}%)达标，溢价提权`; } 
+                                else if (orders === 0 && spend < params.tosLowSpendThreshold) { newPcnt = currentPcnt + params.increaseTosPcnt; actionStr = `首页低花费($${spend.toFixed(2)})，测款提权`; } 
+                                else if (orders > 0 && acos > params.tosTargetAcos) { newPcnt = Math.max(0, currentPcnt - params.decreaseTosPcnt); actionStr = `首页专属ACoS(${acos.toFixed(1)}%)超标，溢价降权`; fCat = 'tos_decrease'; } 
+                                else if (orders === 0 && spend >= params.tosLowSpendThreshold) { newPcnt = Math.max(0, currentPcnt - params.decreaseTosPcnt); actionStr = `首页0单高耗($${spend.toFixed(2)})，降权止损`; fCat = 'tos_decrease'; }
+                                
+                                if (newPcnt > 900) newPcnt = 900; 
+                                
+                                if (newPcnt !== currentPcnt) {
+                                    row[h_percentage] = newPcnt; row[h_op] = 'Update'; row.__changed_percentage = true;
+                                    unifiedLogs.push({ logId: unifiedLogs.length, isAutomated, filterCategory: fCat, type: 'percentage', campaign: campName || '未知活动(ID追踪匹配)', target: '[独立核算] 顶部搜索结果 (TOS)', action: '首页溢价单独调整', metrics: `独立花费:$${spend.toFixed(2)} | 订单:${orders} | 独立ACoS:${acos > 0 ? acos.toFixed(2)+'%' : '-'}`, reason: actionStr, dataIndex: idx, editType: 'percentage', colName: h_percentage, oldVal: currentPcnt, newVal: newPcnt, rawMetrics: { spend, clicks: 0, impressions: 0, orders, acos } });
+                                    modifiedCount++; if (fCat === 'tos_boost') tierCounts.tosBoost++; else tierCounts.tosDecrease++;
+                                }
+                            }
+                        });
+
+                        setSummary({ modifiedCount, negativeAddedCount, tierCounts, skipDetails, processedData, negativeKeywordsToCreate, unifiedLogs });
+                        setIsProcessing(false);
+                    } catch (e) { showAlert("引擎计算异常：" + e.message); setIsProcessing(false); }
+                }, 500);
+            };
+
+            const handleLogEdit = (logId, val) => {
+                setSummary(prev => {
+                    const next = { ...prev }; next.unifiedLogs = [...prev.unifiedLogs]; const logIdx = next.unifiedLogs.findIndex(l => l.logId === logId); if (logIdx === -1) return prev;
+                    const log = { ...next.unifiedLogs[logIdx] };
+                    if (log.editType === 'negative') {
+                        log.ignored = val === 'ignore'; log.newVal = val; next.unifiedLogs[logIdx] = log;
+                        next.negativeKeywordsToCreate = [...prev.negativeKeywordsToCreate]; next.negativeKeywordsToCreate[log.dataIndex].__ignored = log.ignored;
+                    } else {
+                        log.newVal = val; next.unifiedLogs[logIdx] = log;
+                        if (log.editType === 'bid' || log.editType === 'percentage' || log.editType === 'state') {
+                            next.processedData = [...prev.processedData]; const targetRow = { ...next.processedData[log.dataIndex] };
+                            let realVal = val; if (log.colName === '状态' || log.colName === 'Status') realVal = val === 'paused' ? '已暂停' : (val === 'enabled' ? '已启用' : val);
+                            targetRow[log.colName] = realVal; 
+                            if (log.editType === 'bid') targetRow.__changed_bid = true;
+                            if (log.editType === 'percentage') targetRow.__changed_percentage = true;
+                            if (log.editType === 'state') targetRow.__changed_state = true;
+                            next.processedData[log.dataIndex] = targetRow;
+                        }
+                    }
+                    return next;
+                });
+            };
+
+            const handleBulkRevert = () => {
+                if (selectedLogIds.size === 0) { showAlert("请先勾选需要取消优化的日志项目！"); return; }
+                showConfirm(`确定要批量取消勾选的 ${selectedLogIds.size} 项优化建议吗？取消后该指令将不会被导出。`, () => {
+                    setSummary(prev => {
+                        const next = { ...prev }; next.unifiedLogs = [...prev.unifiedLogs]; next.processedData = [...prev.processedData]; next.negativeKeywordsToCreate = [...prev.negativeKeywordsToCreate];
+                        selectedLogIds.forEach(logId => {
+                            const logIdx = next.unifiedLogs.findIndex(l => l.logId === logId); if (logIdx === -1) return;
+                            const log = { ...next.unifiedLogs[logIdx] };
+                            if (log.editType === 'negative') {
+                                log.ignored = true; log.newVal = 'ignore'; next.unifiedLogs[logIdx] = log; next.negativeKeywordsToCreate[log.dataIndex].__ignored = true;
+                            } else if (log.editType === 'state') {
+                                const isOldPaused = String(log.oldVal).includes('暂停') || String(log.oldVal).includes('paused');
+                                log.newVal = isOldPaused ? 'paused' : 'enabled'; next.unifiedLogs[logIdx] = log;
+                                const targetRow = { ...next.processedData[log.dataIndex] }; targetRow[log.colName] = log.oldVal; targetRow.__changed_state = false; next.processedData[log.dataIndex] = targetRow;
+                            } else {
+                                log.newVal = log.oldVal; next.unifiedLogs[logIdx] = log;
+                                const targetRow = { ...next.processedData[log.dataIndex] }; targetRow[log.colName] = log.oldVal;
+                                if (log.editType === 'bid') targetRow.__changed_bid = false;
+                                if (log.editType === 'percentage') targetRow.__changed_percentage = false;
+                                next.processedData[log.dataIndex] = targetRow;
+                            }
+                        });
+                        return next;
+                    });
+                    setSelectedLogIds(new Set());
+                });
+            };
+
+            const handleEngineAExport = () => {
+                if (!summary) return;
+                const headers = fileData.headers || [];
+                const h_op = headers.find(h => String(h).trim().toLowerCase() === 'operation' || String(h).trim() === '操作') || 'Operation';
+                const h_entity_exact = headers.find(h => String(h).trim().toLowerCase() === 'entity' || String(h).trim() === '实体层级' || String(h).trim() === '实体' || String(h).trim() === 'record type') || 'Entity';
+
+                let baseExportData = summary.processedData.filter(row => !row.__isAutomated);
+                if (slimExport) {
+                    baseExportData = baseExportData.filter(row => {
+                        const opVal = String(row[h_op] || getVal(row, ['Operation', '操作'])).trim().toLowerCase();
+                        if (opVal !== 'update' && opVal !== 'create') return false;
+                        const cid = getVal(row, ['Campaign Id', '广告活动编号', '广告活动 ID', 'Campaign ID']);
+                        return cid && String(cid).trim() !== '';
+                    });
+                } else {
+                    baseExportData = baseExportData.filter(row => {
+                        const opVal = String(row[h_op] || getVal(row, ['Operation', '操作'])).trim().toLowerCase();
+                        if (opVal === 'update' || opVal === 'create') {
+                            const cid = getVal(row, ['Campaign Id', '广告活动编号', '广告活动 ID', 'Campaign ID']);
+                            if (!cid || String(cid).trim() === '') return false;
+                        }
+                        return true;
+                    });
+                }
+
+                const validNegatives = summary.negativeKeywordsToCreate.filter(r => {
+                    if (r.__ignored || r.__isAutomated) return false;
+                    const cid = getVal(r, ['Campaign Id', '广告活动编号', '广告活动 ID', 'Campaign ID']);
+                    return cid && String(cid).trim() !== '';
+                });
+                
+                if (slimExport && baseExportData.length === 0 && validNegatives.length === 0) {
+                    showAlert("过滤掉带有【简化/自动化】血统的广告后，当前没有发生任何需要导出的修改。"); return;
+                }
+
+                let rawDataToExport = baseExportData.concat(validNegatives);
+                
+                const allowedColsForUpdate = [
+                    'product', '产品', 'entity', '实体层级', '实体', 'record type', 'operation', '操作',
+                    'campaign id', '广告活动编号', '广告活动 id', 
+                    'ad group id', '广告组编号', '广告组 id', 
+                    'keyword id', '关键词编号', '关键词 id',
+                    'product targeting id', '商品投放 id', '商品投放编号', 
+                    'ad id', '广告编号', '广告 id', 
+                    'portfolio id', '广告组合编号', '广告组合 id',
+                    'state', '状态', 'status', 'bid', '竞价', 'max bid', 'percentage', '百分比', 'placement', '广告位'
+                ];
+
+                const allowedColsForCreate = [ ...allowedColsForUpdate, 'keyword text', '关键词文本', 'match type', '匹配类型', 'product targeting expression', '商品投放表达式' ];
+                const isIdCol = (hLower) => hLower.includes('id') || hLower.includes('编号');
+                const isNumericCol = (hLower) => hLower === 'bid' || hLower === '竞价' || hLower === 'percentage' || hLower === '百分比' || hLower === 'max bid';
+
+                const sanitizedDataToExport = rawDataToExport.map(row => {
+                    const cleanRow = {};
+                    const opVal = String(row[h_op] || getVal(row, ['Operation', '操作'])).trim().toLowerCase();
+                    const entityVal = String(row[h_entity_exact] || getVal(row, ['Entity', '实体', '实体层级', 'Record Type'])).trim().toLowerCase();
+                    
+                    headers.forEach(h => {
+                        const hStrLower = String(h).trim().toLowerCase(); let val = row[h];
+                        if (val === undefined) { const matchedKey = Object.keys(row).find(rk => String(rk).trim().toLowerCase() === hStrLower); if (matchedKey) val = row[matchedKey]; }
+                        
+                        if (opVal === 'update') { 
+                            let isForbiddenForUpdate = false;
+                            const isCampId = hStrLower === 'campaign id' || hStrLower === '广告活动编号' || hStrLower === '广告活动 id';
+                            const isAdgId = hStrLower === 'ad group id' || hStrLower === '广告组编号' || hStrLower === '广告组 id';
+                            
+                            if (entityVal.includes('keyword') || entityVal.includes('关键词') || entityVal.includes('targeting') || entityVal.includes('投放')) { if (isCampId || isAdgId) isForbiddenForUpdate = true; } 
+                            else if (entityVal === 'ad group' || entityVal === '广告组') { if (isCampId) isForbiddenForUpdate = true; } 
+                            else if (['product ad', '商品广告', 'ad', '广告', '商品推广广告'].includes(entityVal)) { if (isCampId || isAdgId) isForbiddenForUpdate = true; } 
+                            else if (entityVal === 'bidding adjustment' || entityVal === '竞价方案') { if (isAdgId) isForbiddenForUpdate = true; }
+
+                            const immutableCols = ['keyword text', '关键词文本', 'match type', '匹配类型', 'product targeting expression', '商品投放表达式', 'sku', 'asin (informational only)', 'asin（仅供参考）'];
+                            if (immutableCols.includes(hStrLower)) isForbiddenForUpdate = true;
+
+                            let isAllowed = allowedColsForUpdate.includes(hStrLower);
+                            if (isForbiddenForUpdate) isAllowed = false;
+
+                            if (slimExport ? isAllowed : !isForbiddenForUpdate) {
+                                if (isIdCol(hStrLower)) cleanRow[h] = val != null && val !== '' ? String(val).trim() : '';
+                                else if (isNumericCol(hStrLower)) cleanRow[h] = val != null && val !== '' ? parseFloat(String(val).replace(/[,%\$]/g, '')) : '';
+                                else cleanRow[h] = val != null ? val : '';
+                            } else cleanRow[h] = ''; 
+                        } else if (opVal === 'create') {
+                            let isAllowed = allowedColsForCreate.includes(hStrLower);
+                            if (slimExport ? isAllowed : true) {
+                                if (isIdCol(hStrLower)) cleanRow[h] = val != null && val !== '' ? String(val).trim() : '';
+                                else if (isNumericCol(hStrLower)) cleanRow[h] = val != null && val !== '' ? parseFloat(String(val).replace(/[,%\$]/g, '')) : '';
+                                else cleanRow[h] = val != null ? val : '';
+                            } else cleanRow[h] = '';
+                        } else cleanRow[h] = val != null ? val : '';
+                    });
+                    return cleanRow;
+                });
+                
+                const newWs = window.XLSX.utils.json_to_sheet(sanitizedDataToExport, { header: headers }); const newWb = window.XLSX.utils.book_new();
+                const baseRow = sanitizedDataToExport[0] || {}; const isChinese = Object.keys(baseRow).some(k => String(k).includes('广告活动') || String(k).includes('商品推广'));
+                window.XLSX.utils.book_append_sheet(newWb, newWs, isChinese ? '商品推广活动' : 'Sponsored Products Campaigns');
+                window.XLSX.writeFile(newWb, `EngineA_Optimized_${slimExport ? 'ZeroNoise_' : ''}${new Date().toISOString().slice(0,10).replace(/-/g,"")}.xlsx`);
+            };
+
+            const handleEngineBExport = () => {
+                if (!globalNegState.spu) return;
+                const targetCamps = activeCampaigns.filter(c => c.cName.toUpperCase().includes(globalNegState.spu.toUpperCase()) && !c.cName.includes('简化') && !c.cName.includes('自动化'));
+                if (targetCamps.length === 0) { showAlert(`未找到名称中包含 SPU: ${globalNegState.spu} 的活跃(且非自动化)广告活动。`); return; }
+
+                const exacts = globalNegState.exact.split('\n').map(s => s.trim()).filter(s => s);
+                const phrases = globalNegState.phrase.split('\n').map(s => s.trim()).filter(s => s);
+                const asins = globalNegState.asin.split('\n').map(s => s.trim()).filter(s => s);
+
+                if (exacts.length === 0 && phrases.length === 0 && asins.length === 0) { showAlert("请输入至少一个否定关键词或 ASIN。"); return; }
+
+                const headers = fileData.headers || [];
+                const isChinese = headers.some(h => String(h).includes('活动') || String(h).includes('产品'));
+                const exportData = [];
+                
+                const getLocHeader = (options, fallback) => {
+                    const match = headers.find(h => options.includes(String(h).trim().toLowerCase()));
+                    return match || fallback;
+                };
+
+                targetCamps.forEach(camp => {
+                    const campIdStr = String(camp.cId).trim();
+                    exacts.forEach(kw => {
+                        let newRow = {};
+                        newRow[getLocHeader(['product', '产品'], 'Product')] = isChinese ? '商品推广' : 'Sponsored Products';
+                        newRow[getLocHeader(['entity', '实体层级', '实体'], 'Entity')] = isChinese ? '广告活动否定关键词' : 'Campaign Negative Keyword';
+                        newRow[getLocHeader(['operation', '操作'], 'Operation')] = 'Create';
+                        newRow[getLocHeader(['campaign id', '广告活动 id', '广告活动编号'], 'Campaign ID')] = campIdStr;
+                        newRow[getLocHeader(['keyword text', '关键词文本'], 'Keyword Text')] = kw;
+                        newRow[getLocHeader(['match type', '匹配类型'], 'Match Type')] = isChinese ? '精准否定' : 'Negative Exact';
+                        newRow[getLocHeader(['state', '状态', 'status'], 'State')] = isChinese ? '已启用' : 'Enabled';
+                        exportData.push(newRow);
+                    });
+                    phrases.forEach(kw => {
+                        let newRow = {};
+                        newRow[getLocHeader(['product', '产品'], 'Product')] = isChinese ? '商品推广' : 'Sponsored Products';
+                        newRow[getLocHeader(['entity', '实体层级', '实体'], 'Entity')] = isChinese ? '广告活动否定关键词' : 'Campaign Negative Keyword';
+                        newRow[getLocHeader(['operation', '操作'], 'Operation')] = 'Create';
+                        newRow[getLocHeader(['campaign id', '广告活动 id', '广告活动编号'], 'Campaign ID')] = campIdStr;
+                        newRow[getLocHeader(['keyword text', '关键词文本'], 'Keyword Text')] = kw;
+                        newRow[getLocHeader(['match type', '匹配类型'], 'Match Type')] = isChinese ? '词组否定' : 'Negative Phrase';
+                        newRow[getLocHeader(['state', '状态', 'status'], 'State')] = isChinese ? '已启用' : 'Enabled';
+                        exportData.push(newRow);
+                    });
+                    asins.forEach(asin => {
+                        let newRow = {};
+                        newRow[getLocHeader(['product', '产品'], 'Product')] = isChinese ? '商品推广' : 'Sponsored Products';
+                        newRow[getLocHeader(['entity', '实体层级', '实体'], 'Entity')] = isChinese ? '广告活动否定商品投放' : 'Campaign Negative Product Targeting';
+                        newRow[getLocHeader(['operation', '操作'], 'Operation')] = 'Create';
+                        newRow[getLocHeader(['campaign id', '广告活动 id', '广告活动编号'], 'Campaign ID')] = campIdStr;
+                        newRow[getLocHeader(['product targeting expression', '商品投放表达式'], 'Product Targeting Expression')] = `asin="${asin.toUpperCase()}"`;
+                        newRow[getLocHeader(['state', '状态', 'status'], 'State')] = isChinese ? '已启用' : 'Enabled';
+                        exportData.push(newRow);
+                    });
+                });
+
+                const allowedCreateCols = [
+                    'product', '产品', 'entity', '实体层级', '实体', 'record type', 'operation', '操作',
+                    'campaign id', '广告活动编号', '广告活动 id', 'state', '状态', 'status',
+                    'keyword text', '关键词文本', 'match type', '匹配类型', 'product targeting expression', '商品投放表达式'
+                ];
+
+                const sanitizedData = exportData.map(row => {
+                    const cleanRow = {};
+                    headers.forEach(h => {
+                        const hStrLower = String(h).trim().toLowerCase();
+                        if (allowedCreateCols.includes(hStrLower)) cleanRow[h] = row[h] != null ? String(row[h]).trim() : '';
+                        else cleanRow[h] = '';
+                    });
+                    return cleanRow;
+                });
+
+                const newWs = window.XLSX.utils.json_to_sheet(sanitizedData, { header: headers }); const newWb = window.XLSX.utils.book_new();
+                window.XLSX.utils.book_append_sheet(newWb, newWs, isChinese ? '商品推广活动' : 'Sponsored Products Campaigns');
+                window.XLSX.writeFile(newWb, `EngineB_GlobalNegatives_${new Date().toISOString().slice(0,10).replace(/-/g,"")}.xlsx`);
+            };
+
+            const handleEngineDMatch = () => {
+                if (!fileData || !fileData.data) { showAlert("请先导入底层 Bulk 数据源！"); return; }
+                setIsProcessing(true);
+
+                setTimeout(() => {
+                    try {
+                        const targetNames = engineDInput.split('\n').map(s => s.trim()).filter(s => s);
+                        if (targetNames.length === 0) { showAlert("请输入至少一个广告活动名称"); setIsProcessing(false); return; }
+
+                        const matchedResults = [];
+                        const headers = fileData.headers;
+                        const h_entity = headers.find(h => String(h).trim().toLowerCase() === 'entity' || String(h).trim() === '实体层级' || String(h).trim() === '实体' || String(h).trim() === 'record type') || 'Entity';
+                        const h_percent = headers.find(h => String(h).trim().toLowerCase().includes('percentage') || String(h).trim().includes('百分比')) || 'Percentage';
+
+                        const campIdToName = new Map();
+                        const nameToCampId = new Map();
+
+                        fileData.data.forEach(row => {
+                            const entity = String(getVal(row, [h_entity])).toLowerCase();
+                            if (entity === 'campaign' || entity === '广告活动') {
+                                const cNameRaw = getVal(row, ['Campaign Name (Informational only)', '广告活动名称（仅供参考）', 'Campaign Name', '广告活动名称']);
+                                const cId = getVal(row, ['Campaign Id', '广告活动编号', '广告活动 ID', 'Campaign ID']);
+                                if (cNameRaw && cId) {
+                                    campIdToName.set(String(cId).trim(), cNameRaw);
+                                    nameToCampId.set(cNameRaw.toLowerCase().trim(), String(cId).trim());
+                                }
+                            }
+                        });
+
+                        targetNames.forEach(tName => {
+                            const cId = nameToCampId.get(tName.toLowerCase());
+                            const isAutomated = tName.includes('简化') || tName.includes('自动化') || (cId && automatedCampaignIds.has(cId));
+
+                            if (!cId) {
+                                matchedResults.push({ id: 'not_found_' + Math.random(), name: tName, status: '未找到活动', overall: { spend: 0, sales: 0, orders: 0, acos: 0 }, tos: { spend: 0, sales: 0, orders: 0, acos: 0 }, currentPercent: 0, newPercent: 0, cId: null, isAutomated });
+                                return;
+                            }
+
+                            let overall = { spend: 0, sales: 0, orders: 0, acos: 0 }; let tos = { spend: 0, sales: 0, orders: 0, acos: 0 };
+                            let currentPercent = 0; let hasTosRow = false; let rawTosRow = null;
+
+                            fileData.data.forEach(row => {
+                                const rowCId = String(getVal(row, ['Campaign Id', '广告活动编号', '广告活动 ID', 'Campaign ID'])).trim();
+                                if (rowCId !== cId) return;
+
+                                const entity = String(getVal(row, [h_entity])).toLowerCase();
+
+                                if (entity === 'campaign' || entity === '广告活动') {
+                                    overall.spend = parseFloat(getMetric(row, ['spend', '花费'])); overall.sales = parseFloat(getMetric(row, ['sales', '销售额', '7天总销售额', '30 day total sales'])); overall.orders = parseInt(getMetric(row, ['orders', '订单数量', '订单', '7天总订单数']), 10);
+                                    overall.acos = overall.sales > 0 ? (overall.spend / overall.sales) * 100 : 0;
+                                } else if (entity === 'bidding adjustment' || entity === '竞价方案') {
+                                    const placement = String(getVal(row, ['Placement', '广告位'])).toLowerCase();
+                                    if (placement.includes('top') || placement.includes('顶部')) {
+                                        hasTosRow = true; rawTosRow = row;
+                                        tos.spend = parseFloat(getMetric(row, ['spend', '花费'])); tos.sales = parseFloat(getMetric(row, ['sales', '销售额', '7天总销售额', '30 day total sales'])); tos.orders = parseInt(getMetric(row, ['orders', '订单数量', '订单', '7天总订单数']), 10);
+                                        tos.acos = tos.sales > 0 ? (tos.spend / tos.sales) * 100 : 0;
+                                        let pcntStr = String(row[h_percent] || '0').replace(/%/g, ''); currentPercent = parseInt(pcntStr, 10); if (isNaN(currentPercent)) currentPercent = 0;
+                                    }
+                                }
+                            });
+
+                            matchedResults.push({ id: cId, name: campIdToName.get(cId) || tName, status: hasTosRow ? '匹配成功' : '无顶部记录', overall, tos, currentPercent, newPercent: currentPercent, cId: cId, rawTosRow, isAutomated });
+                        });
+
+                        setEngineDMatched(matchedResults); setIsProcessing(false);
+                    } catch (e) {
+                        showAlert("解析表现出现错误: " + e.message);
+                        setIsProcessing(false);
+                    }
+                }, 400);
+            };
+
+            const handleEngineDBatchApply = () => {
+                if (!engineDMatched) return;
+                const updated = engineDMatched.map(item => {
+                    if (item.status !== '匹配成功') return item;
+                    let np = item.currentPercent; const val = parseInt(engineDBatchVal, 10) || 0;
+                    if (engineDBatchMode === 'add') np += val; else if (engineDBatchMode === 'sub') np -= val; else if (engineDBatchMode === 'set') np = val;
+                    if (np < 0) np = 0; if (np > 900) np = 900;
+                    return { ...item, newPercent: np };
+                });
+                setEngineDMatched(updated);
+            };
+
+            const handleEngineDItemChange = (id, newPcnt) => {
+                let parsed = parseInt(newPcnt, 10); if (isNaN(parsed)) parsed = 0; if (parsed < 0) parsed = 0; if (parsed > 900) parsed = 900;
+                setEngineDMatched(prev => prev.map(item => item.id === id ? { ...item, newPercent: parsed } : item));
+            };
+
+            const handleEngineDExport = () => {
+                if (!engineDMatched) return;
+                const toExport = engineDMatched.filter(item => {
+                    return item.status === '匹配成功' && item.newPercent !== item.currentPercent && !item.isAutomated && item.cId && String(item.cId).trim() !== '';
+                });
+                
+                if (toExport.length === 0) { showAlert("当前没有检测到合规的活动溢价发生变化（自动化广告已被拦截剥离），无需导出。"); return; }
+
+                const headers = fileData.headers;
+                const h_op = headers.find(h => String(h).trim().toLowerCase() === 'operation' || String(h).trim() === '操作') || 'Operation';
+                const h_percent = headers.find(h => String(h).trim().toLowerCase().includes('percentage') || String(h).trim().includes('百分比')) || 'Percentage';
+
+                const exportRows = toExport.map(item => {
+                    const newRow = { ...item.rawTosRow }; newRow[h_op] = 'Update'; newRow[h_percent] = item.newPercent; return newRow;
+                });
+
+                const allowedColsForUpdate = [ 'product', '产品', 'entity', '实体层级', '实体', 'record type', 'operation', '操作', 'campaign id', '广告活动编号', '广告活动 id', 'placement', '广告位', 'percentage', '百分比' ];
+
+                const sanitizedData = exportRows.map(row => {
+                    const cleanRow = {};
+                    headers.forEach(h => {
+                        const hStrLower = String(h).trim().toLowerCase(); const val = row[h];
+                        if (allowedColsForUpdate.includes(hStrLower)) {
+                            if (hStrLower === 'percentage' || hStrLower === '百分比') cleanRow[h] = val != null && val !== '' ? parseFloat(String(val).replace(/[,%\$]/g, '')) : '';
+                            else if (hStrLower.includes('id') || hStrLower.includes('编号')) cleanRow[h] = val != null ? String(val).trim() : '';
+                            else cleanRow[h] = val != null ? val : '';
+                        } else cleanRow[h] = '';
+                    });
+                    return cleanRow;
+                });
+
+                const newWs = window.XLSX.utils.json_to_sheet(sanitizedData, { header: headers }); const newWb = window.XLSX.utils.book_new();
+                const baseRow = sanitizedData[0] || {}; const isChinese = Object.keys(baseRow).some(k => String(k).includes('广告活动') || String(k).includes('商品推广'));
+                window.XLSX.utils.book_append_sheet(newWb, newWs, isChinese ? '商品推广活动' : 'Sponsored Products Campaigns');
+                window.XLSX.utils.writeFile(newWb, `EngineD_TOS_Updates_${new Date().toISOString().slice(0,10).replace(/-/g,"")}.xlsx`);
+            };
+
+            const handleEngineDLogExport = () => {
+                if (!engineDMatched || engineDMatched.length === 0) {
+                    showAlert("请先点击 [解析底层指标] 获取数据。"); return;
+                }
+                const logData = engineDMatched.map(item => {
+                    return {
+                        "目标广告活动名称": item.name,
+                        "当前匹配状态": item.status,
+                        "是否为自动化广告": item.isAutomated ? "是" : "否",
+                        "活动整体花费": item.overall ? `$${item.overall.spend.toFixed(2)}` : '-',
+                        "活动整体单量": item.overall ? item.overall.orders : '-',
+                        "活动整体ACoS": item.overall && item.overall.acos > 0 ? `${item.overall.acos.toFixed(2)}%` : '-',
+                        "原顶部溢价": item.status === '匹配成功' ? `${item.currentPercent}%` : '-',
+                        "系统建议溢价": item.status === '匹配成功' ? `${item.newPercent}%` : '-',
+                        "后续排查建议": item.status === '匹配成功' ? '✅ 匹配并计算成功' : '⚠️ 需去亚马逊后台手动调整'
+                    };
+                });
+                const newWs = window.XLSX.utils.json_to_sheet(logData);
+                const newWb = window.XLSX.utils.book_new();
+                window.XLSX.utils.book_append_sheet(newWb, newWs, '引擎D_排查与执行明细');
+                window.XLSX.writeFile(newWb, `EngineD_Audit_Logs_${new Date().toISOString().slice(0,10).replace(/-/g,"")}.xlsx`);
+            };
+
+            const handleExportLogs = () => {
+                if (!summary || !summary.unifiedLogs || summary.unifiedLogs.length === 0) {
+                    showAlert("当前没有生成任何优化日志可供导出！");
+                    return;
+                }
+
+                const logDataForExport = summary.unifiedLogs.map(log => {
+                    let finalResult = log.result;
+                    if (log.editType === 'bid') finalResult = `$${log.oldVal} ➔ $${log.newVal}`;
+                    if (log.editType === 'percentage') finalResult = `${log.oldVal}% ➔ ${log.newVal}%`;
+                    if (log.editType === 'state') finalResult = `➔ ${log.newVal}`;
+                    if (log.editType === 'negative') finalResult = log.ignored ? '【已忽略】跳过拉黑' : '+ 新增否定';
+
+                    const campName = log.campaign || "";
+                    const spuCode = campName.substring(0, 6).toUpperCase();
+                    const matchedManager = managerMap[spuCode] || "未匹配";
+
+                    return {
+                        "负责人 (Manager)": matchedManager,
+                        "操作类型 (Type)": log.action,
+                        "归属广告活动 (Campaign Name)": log.campaign,
+                        "具体操作对象 (Target)": log.target,
+                        "微调最终动作 (Result)": finalResult,
+                        "触发规则原因 (Reason)": log.reason,
+                        "当时核心指标 (Metrics)": log.metrics,
+                        "是否为自动化广告 (Automated)": log.isAutomated ? "是" : "否"
+                    };
+                });
+
+                const newWs = window.XLSX.utils.json_to_sheet(logDataForExport);
+                const newWb = window.XLSX.utils.book_new();
+                window.XLSX.utils.book_append_sheet(newWb, newWs, '优化操作复盘日志');
+
+                const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
+                window.XLSX.writeFile(newWb, `Optimization_Details_Log_${dateStr}.xlsx`);
+            };
+
+            const renderMacroCard = (id, label, count, activeClass, idleClass) => (
+                <div key={id} onClick={() => setLogFilter(logFilter === id ? 'all' : id)} className={`p-3 rounded-xl border text-center cursor-pointer transition-all hover:shadow-md ${logFilter === id ? activeClass + ' scale-105 shadow-md' : idleClass}`}>
+                    <p className="text-[10px] font-bold mb-1 opacity-90">{label}</p>
+                    <p className="text-xl font-black">{count}</p>
+                </div>
+            );
+
+            const renderTierCard = (id, label, count, activeClass, idleClass) => (
+                <div key={id} onClick={() => setLogFilter(logFilter === id ? 'all' : id)} className={`p-3 rounded-xl border text-center cursor-pointer transition-all hover:shadow-md ${logFilter === id ? activeClass + ' scale-105 shadow-md' : idleClass}`}>
+                    <p className="text-[10px] mb-1 opacity-70">{label}</p>
+                    <p className="text-xl font-bold">{count}</p>
+                </div>
+            );
+
+            let displayLogs = summary ? summary.unifiedLogs : [];
+            if (logFilter !== 'all') { displayLogs = displayLogs.filter(log => log.filterCategory === logFilter); }
+            if (logSearchText.trim()) {
+                const lowerSearch = logSearchText.toLowerCase();
+                displayLogs = displayLogs.filter(log => (log.campaign && log.campaign.toLowerCase().includes(lowerSearch)) || (log.target && log.target.toLowerCase().includes(lowerSearch)) || (log.reason && log.reason.toLowerCase().includes(lowerSearch)));
+            }
+            if (logSortBy !== 'default') {
+                displayLogs = [...displayLogs].sort((a, b) => {
+                    const aM = a.rawMetrics || {}; const bM = b.rawMetrics || {};
+                    switch (logSortBy) {
+                        case 'spendDesc': return (bM.spend || 0) - (aM.spend || 0);
+                        case 'acosDesc': return (bM.acos || 0) - (aM.acos || 0);
+                        case 'ordersDesc': return (bM.orders || 0) - (aM.orders || 0);
+                        case 'clicksDesc': return (bM.clicks || 0) - (aM.clicks || 0);
+                        default: return 0;
+                    }
+                });
+            }
+
+            const totalDisplayLogs = displayLogs.length; const visibleLogs = displayLogs.slice(0, MAX_LOGS_DISPLAY);
+            let displayChurnLogs = engineCSummary ? engineCSummary.unifiedLogs : [];
+            if (churnLogSearchText.trim()) {
+                const lowerSearch = churnLogSearchText.toLowerCase();
+                displayChurnLogs = displayChurnLogs.filter(log => (log.campaign && log.campaign.toLowerCase().includes(lowerSearch)) || (log.target && log.target.toLowerCase().includes(lowerSearch)));
+            }
+            if (churnLogSortBy !== 'default') {
+                displayChurnLogs = [...displayChurnLogs].sort((a, b) => {
+                    const aM = a.rawMetrics || {}; const bM = b.rawMetrics || {};
+                    switch (churnLogSortBy) { case 'rateDesc': return (bM.rate || 0) - (aM.rate || 0); case 'ordersDesc': return (bM.orders || 0) - (aM.orders || 0); default: return 0; }
+                });
+            }
+            const totalDisplayChurnLogs = displayChurnLogs.length; const visibleChurnLogs = displayChurnLogs.slice(0, MAX_LOGS_DISPLAY);
+
+            return (
+                <div className="min-h-screen py-8 px-4 sm:px-8 bg-[#f5f5f7] text-[#1d1d1f] font-sans overflow-x-hidden">
+                    {dialog && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+                            <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in duration-200">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-[#007aff]">{dialog.onConfirm ? <IconAlertTriangle /> : <IconActivity />}</div>
+                                    <h3 className="text-lg font-bold text-gray-900">{dialog.onConfirm ? "操作确认" : "系统提示"}</h3>
+                                </div>
+                                <p className="text-sm text-gray-600 mb-6 font-medium leading-relaxed">{dialog.message}</p>
+                                <div className="flex justify-end gap-3">
+                                    {dialog.onConfirm && ( <button onClick={() => setDialog(null)} className="px-5 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">取消</button> )}
+                                    <button onClick={() => { if (dialog.onConfirm) dialog.onConfirm(); setDialog(null); }} className="px-5 py-2.5 text-sm font-bold text-white bg-[#007aff] hover:bg-[#006ee6] rounded-xl transition-colors shadow-md">确定</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="max-w-[1400px] mx-auto space-y-6">
+                        <header className="bg-white rounded-[24px] shadow-sm p-8 border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h1 className="text-2xl font-bold text-[#1d1d1f] flex items-center gap-2 tracking-tight">
+                                    <span className="bg-[#007aff] text-white p-2 rounded-xl"><IconSettings /></span>
+                                    亚马逊全能多擎优化器 V14.19
+                                </h1>
+                                <p className="text-sm text-[#86868b] mt-2 font-medium">【引擎排版重构与智能挂载版】彻底修复因容器挤压导致的模块割裂，引擎 B 现已支持纯自动解析否词库报表。</p>
+                            </div>
+                        </header>
+
+                        <section className="bg-white rounded-[24px] shadow-sm p-6 border border-gray-100 relative overflow-hidden">
+                            <h2 className="text-base font-bold text-[#1d1d1f] mb-4 flex items-center gap-2">
+                                <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm ${fileData ? 'bg-[#34c759] text-white' : 'bg-[#007aff] text-white'}`}>{fileData ? '✓' : '1'}</span>
+                                导入底层数据源 (需传入原始完整的 Bulk File)
+                            </h2>
+                            {!fileData ? (
+                                <div onClick={() => !isProcessing && fileInputRef.current.click()} className={`border-2 border-dashed rounded-[18px] p-10 flex flex-col items-center justify-center transition-all ${isProcessing ? 'border-[#007aff] bg-[#f0f8ff] opacity-70' : 'border-[#d2d2d7] hover:border-[#007aff] hover:bg-[#f8f9fa] cursor-pointer'}`}>
+                                    {isProcessing ? <IconLoader /> : <IconUpload />}
+                                    <p className="text-[#1d1d1f] font-semibold mt-4 text-sm">{isProcessing ? progressMsg : "点击载入亚马逊 Bulk 文件 (.xlsx / .csv)"}</p>
+                                    <p className="text-[11px] text-[#34c759] mt-2 font-bold">🚀 系统就绪。搭载流式校验与多轨分析核心。</p>
+                                </div>
+                            ) : (
+                                <div className="bg-[#f5f5f7] rounded-[18px] p-5 flex items-center justify-between">
+                                    <div className="flex gap-4 items-center">
+                                        <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center text-[#34c759]"><IconCheck /></div>
+                                        <div>
+                                            <p className="text-sm font-bold text-[#1d1d1f]">{fileData.fileName}</p>
+                                            <div className="text-[12px] font-medium text-[#86868b] mt-1 flex gap-4">
+                                                <span>✓ 识别活跃活动: {activeCampaigns.length} 个</span>
+                                                <span className="text-blue-500">✓ 锁定自动化活动血统: {automatedCampaignIds.size} 个</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => {setFileData(null); setSummary(null); setExtractedSpus([]); setLogFilter('all'); setEngineDMatched(null);}} className="text-sm font-bold text-[#007aff] hover:underline px-4">重新上传</button>
+                                </div>
+                            )}
+                            <input type="file" ref={fileInputRef} onChange={handleFileUpload} onClick={e => e.target.value = null} className="hidden" accept=".xlsx, .csv" />
+                        </section>
+
+                        {fileData && (
+                            <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2">
+                                <div className="flex flex-col sm:flex-row border-b border-gray-100 bg-[#f5f5f7] overflow-x-auto">
+                                    <button onClick={() => setActiveTab('optimizer')} className={`flex items-center justify-center gap-2 py-4 px-6 text-sm font-bold border-b-[3px] whitespace-nowrap transition-all ${activeTab === 'optimizer' ? 'border-[#af52de] text-[#af52de] bg-white' : 'border-transparent text-[#86868b] hover:text-[#1d1d1f] hover:bg-[#ebebef]'}`}><IconActivity />引擎 A：竞价调节与熔断</button>
+                                    <button onClick={() => setActiveTab('globalNeg')} className={`flex items-center justify-center gap-2 py-4 px-6 text-sm font-bold border-b-[3px] whitespace-nowrap transition-all ${activeTab === 'globalNeg' ? 'border-[#ff3b30] text-[#ff3b30] bg-white' : 'border-transparent text-[#86868b] hover:text-[#1d1d1f] hover:bg-[#ebebef]'}`}><IconBan />引擎 B：跨活动全局否定</button>
+                                    <button onClick={() => setActiveTab('churnCleanser')} className={`flex items-center justify-center gap-2 py-4 px-6 text-sm font-bold border-b-[3px] whitespace-nowrap transition-all ${activeTab === 'churnCleanser' ? 'border-[#ff9500] text-[#ff9500] bg-white' : 'border-transparent text-[#86868b] hover:text-[#1d1d1f] hover:bg-[#ebebef]'}`}><IconTrendingDown />引擎 C：流失率靶向清洗</button>
+                                    <button onClick={() => setActiveTab('tosEngine')} className={`flex items-center justify-center gap-2 py-4 px-6 text-sm font-bold border-b-[3px] whitespace-nowrap transition-all ${activeTab === 'tosEngine' ? 'border-[#007aff] text-[#007aff] bg-white' : 'border-transparent text-[#86868b] hover:text-[#1d1d1f] hover:bg-[#ebebef]'}`}><IconPercent />引擎 D：首页精准调控</button>
+                                </div>
+
+                                <div className="p-4 sm:p-6 w-full max-w-full overflow-hidden">
+                                    
+                                    {activeTab === 'optimizer' && (
+                                        <div className="flex flex-col lg:flex-row gap-6 w-full animate-in fade-in max-w-full">
+                                            <div className="lg:flex-1 space-y-6 min-w-0 max-w-full">
+                                                <div className="bg-[#f9f9fb] rounded-[20px] p-6 border border-gray-100 w-full overflow-hidden">
+                                                    <h2 className="text-base font-bold text-[#1d1d1f] mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2"><span>执行与监控域</span>{summary && <span className="text-[10px] text-gray-500 font-normal">提示：点击下方卡片可快速按类别筛选日志 🎯</span>}</h2>
+                                                    {!summary ? (
+                                                        <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-gray-200 rounded-xl bg-white">
+                                                            <p className="text-sm text-[#86868b] mb-6 text-center px-4">右侧参数已就绪。点击下方按钮启动多轨算法清洗。</p>
+                                                            <button onClick={handleEngineAProcess} disabled={isProcessing} className="bg-[#1d1d1f] hover:bg-black text-white text-sm font-bold py-3 px-10 rounded-xl flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50">{isProcessing ? <IconLoader /> : <IconActivity />}{isProcessing ? "全域铁血清洗中..." : "启动引擎 A"}</button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="space-y-6 animate-in fade-in w-full">
+                                                            <div>
+                                                                <p className="text-xs font-bold text-[#86868b] uppercase tracking-wider mb-2">防御矩阵拦截 (点击卡片筛选日志)</p>
+                                                                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                                                                    {renderMacroCard('pause_campaign', '活动熔断', summary.tierCounts.pausedCampaign, 'bg-red-500 text-white border-red-600', 'bg-red-50 border-red-100 text-red-700 hover:bg-red-100')}
+                                                                    {renderMacroCard('pause_adgroup', '广告组熔断', summary.tierCounts.pausedAdGroup, 'bg-orange-500 text-white border-orange-600', 'bg-orange-50 border-orange-100 text-orange-700 hover:bg-orange-100')}
+                                                                    {renderMacroCard('pause_target', '投放停用', summary.tierCounts.pausedKw, 'bg-amber-500 text-white border-amber-600', 'bg-amber-50 border-amber-100 text-amber-800 hover:bg-amber-100')}
+                                                                    {renderMacroCard('pause_sku', 'SKU 停用', summary.tierCounts.pausedSku, 'bg-yellow-500 text-white border-yellow-600', 'bg-yellow-50 border-yellow-100 text-yellow-800 hover:bg-yellow-100')}
+                                                                    {renderMacroCard('negative', '搜词拉黑', summary.negativeAddedCount, 'bg-rose-500 text-white border-rose-600', 'bg-rose-50 border-rose-100 text-rose-700 hover:bg-rose-100')}
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-xs font-bold text-[#86868b] uppercase tracking-wider mb-2">阶梯竞价与顶部核算</p>
+                                                                <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+                                                                    {renderTierCard('tier1', '降价止损', summary.tierCounts.tier1, 'bg-gray-800 text-white border-gray-900', 'bg-white border-gray-200 text-[#1d1d1f] hover:border-gray-300')}
+                                                                    {renderTierCard('tier2', '放量提价', summary.tierCounts.tier2, 'bg-green-600 text-white border-green-700', 'bg-white border-gray-200 text-[#1d1d1f] hover:border-green-300')}
+                                                                    {renderTierCard('tier3', '逼近利润线', summary.tierCounts.tier3, 'bg-teal-600 text-white border-teal-700', 'bg-white border-gray-200 text-[#1d1d1f] hover:border-teal-300')}
+                                                                    {renderTierCard('tier4', '长尾破冰', summary.tierCounts.tier4, 'bg-cyan-600 text-white border-cyan-700', 'bg-white border-gray-200 text-[#1d1d1f] hover:border-cyan-300')}
+                                                                    {renderTierCard('tos_boost', '首页提权', summary.tierCounts.tosBoost, 'bg-[#007aff] text-white border-[#006ee6]', 'bg-[#e0f0ff] border-[#b3d7ff] text-[#005bb5] hover:bg-[#cce6ff]')}
+                                                                    {renderTierCard('tos_decrease', '首页降权', summary.tierCounts.tosDecrease || 0, 'bg-[#ff3b30] text-white border-[#d70015]', 'bg-[#ffe5e5] border-[#ffb3b3] text-[#d70015] hover:bg-[#ffcccc]')}
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mt-4 w-full">
+                                                                <div className="bg-[#f5f5f7] px-4 py-3 border-b border-gray-200 flex flex-col xl:flex-row justify-between gap-4">
+                                                                    <span className="text-xs font-bold text-[#1d1d1f] flex items-center gap-1"><IconEdit3 />执行明细日志 (支持手动微调)</span>
+                                                                    <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                                                                        <div className="flex gap-2">
+                                                                            <input type="text" placeholder="搜索日志..." value={logSearchText} onChange={e => setLogSearchText(e.target.value)} className="px-2 py-1 text-xs border border-gray-300 rounded focus:border-[#007aff] outline-none w-28 md:w-40" />
+                                                                            <select value={logSortBy} onChange={e => setLogSortBy(e.target.value)} className="px-2 py-1 text-xs border border-gray-300 rounded bg-white focus:border-[#007aff] outline-none cursor-pointer"><option value="default">默认顺序 (操作顺序)</option><option value="spendDesc">花费由高到低</option><option value="acosDesc">ACoS由高到低</option><option value="clicksDesc">点击由高到低</option><option value="ordersDesc">单量由多到少</option></select>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2">
+                                                                            <span className="text-[10px] text-gray-500 whitespace-nowrap">已勾选 {selectedLogIds.size} 项</span>
+                                                                            <button onClick={handleBulkRevert} className="text-[10px] font-bold bg-white border border-gray-300 text-gray-700 px-3 py-1 rounded hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap">批量取消</button>
+                                                                            {logFilter !== 'all' && (<button onClick={() => setLogFilter('all')} className="text-[10px] font-bold text-gray-500 hover:text-gray-800 transition-colors whitespace-nowrap">清除筛选 ✕</button>)}
+                                                                            <span className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 whitespace-nowrap ${logFilter !== 'all' ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-800'}`}>渲染 {visibleLogs.length} / 共 {totalDisplayLogs} 条</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="log-scroll-container max-h-[65vh] overflow-x-auto overflow-y-auto border-b border-gray-100">
+                                                                    <table className="w-full text-[11px] text-left min-w-[800px]">
+                                                                        <thead className="bg-white sticky top-0 z-10 shadow-sm">
+                                                                            <tr>
+                                                                                <th className="px-4 py-2 w-8 text-center border-b border-gray-100"><input type="checkbox" className="cursor-pointer" checked={displayLogs.length > 0 && displayLogs.every(log => selectedLogIds.has(log.logId))} onChange={(e) => { const newSet = new Set(selectedLogIds); if (e.target.checked) { displayLogs.forEach(log => newSet.add(log.logId)); } else { displayLogs.forEach(log => newSet.delete(log.logId)); } setSelectedLogIds(newSet); }} title="勾选当前筛选条件下的所有行" /></th>
+                                                                                <th className="px-2 py-2 font-medium text-gray-500 border-b border-gray-100">归属活动</th><th className="px-2 py-2 font-medium text-gray-500 border-b border-gray-100">操作对象</th><th className="px-2 py-2 font-medium text-gray-500 text-center border-b border-gray-100">系统动作</th><th className="px-2 py-2 font-medium text-gray-500 border-b border-gray-100">执行原因</th><th className="px-2 py-2 font-medium text-gray-500 border-b border-gray-100">关键指标</th><th className="px-4 py-2 font-medium text-[#007aff] text-right border-b border-gray-100">微调结果</th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody className="divide-y divide-gray-50">
+                                                                            {visibleLogs.map((log) => (
+                                                                                <tr key={log.logId} className={log.editType==='negative'?'bg-rose-50/50':log.editType==='state'?'bg-orange-50/50':'hover:bg-blue-50/30 transition-colors'}>
+                                                                                    <td className="px-4 py-2 text-center"><input type="checkbox" className="cursor-pointer" checked={selectedLogIds.has(log.logId)} onChange={(e) => { const newSet = new Set(selectedLogIds); if(e.target.checked) newSet.add(log.logId); else newSet.delete(log.logId); setSelectedLogIds(newSet); }} /></td>
+                                                                                    <td className="px-2 py-2 text-gray-600 truncate max-w-[120px]" title={log.campaign}>{log.campaign}{log.isAutomated && <span className="ml-1 px-1 bg-blue-100 text-blue-600 rounded text-[9px]">自动</span>}</td>
+                                                                                    <td className="px-2 py-2 font-medium text-[#1d1d1f] truncate max-w-[120px]" title={log.target}>{log.target}</td>
+                                                                                    <td className="px-2 py-2 text-center"><span className="bg-white border border-gray-200 px-1.5 py-0.5 rounded font-bold text-[10px] whitespace-nowrap">{log.action}</span></td>
+                                                                                    <td className="px-2 py-2 text-gray-600 truncate max-w-[160px]" title={log.reason}>{log.reason}</td>
+                                                                                    <td className="px-2 py-2 text-gray-500 font-mono tracking-tight whitespace-nowrap">{log.metrics}</td>
+                                                                                    <td className="px-4 py-2 text-right font-bold text-[#007aff] whitespace-nowrap">
+                                                                                        {log.editType === 'bid' ? (
+                                                                                            <div className="flex items-center justify-end gap-1"><span className="text-gray-400 font-normal">${parseFloat(log.oldVal).toFixed(2)} ➔</span><div className="relative"><span className="absolute left-1.5 top-[3px] text-gray-500 font-normal text-[10px]">$</span><input type="number" step="0.01" className="w-16 border border-[#007aff] rounded pl-3 pr-1 py-0.5 text-center bg-blue-50 focus:bg-white outline-none focus:ring-1 focus:ring-[#007aff]" value={log.newVal === '' ? '' : log.newVal} onChange={(e) => handleLogEdit(log.logId, e.target.value)} /></div></div>
+                                                                                        ) : log.editType === 'percentage' ? (
+                                                                                            <div className="flex items-center justify-end gap-1"><span className="text-gray-400 font-normal">{log.oldVal}% ➔</span><input type="number" step="1" className="w-12 border border-[#007aff] rounded px-1 py-0.5 text-center bg-blue-50 focus:bg-white outline-none focus:ring-1 focus:ring-[#007aff]" value={log.newVal === '' ? '' : log.newVal} onChange={(e) => handleLogEdit(log.logId, e.target.value)} />%</div>
+                                                                                        ) : log.editType === 'state' ? (
+                                                                                            <div className="flex items-center justify-end gap-1"><select className="border border-[#ff9500] text-[#d07800] font-bold rounded px-1 py-0.5 text-center bg-orange-50 focus:bg-white outline-none cursor-pointer" value={log.newVal === '已启用' || log.newVal === 'enabled' ? 'enabled' : 'paused'} onChange={(e) => handleLogEdit(log.logId, e.target.value)}><option value="paused">已暂停</option><option value="enabled">恢复启用</option></select></div>
+                                                                                        ) : log.editType === 'negative' ? (
+                                                                                            <div className="flex items-center justify-end gap-1"><select className={`border font-bold rounded px-1 py-0.5 text-center outline-none cursor-pointer transition-colors ${log.ignored || log.newVal === 'ignore' ? 'border-gray-300 text-gray-500 bg-gray-100' : 'border-rose-400 text-rose-600 bg-rose-50'}`} value={log.ignored || log.newVal === 'ignore' ? 'ignore' : 'create'} onChange={(e) => handleLogEdit(log.logId, e.target.value)}><option value="create">执行拉黑</option><option value="ignore">忽略跳过</option></select></div>
+                                                                                        ) : ( <span>{log.result}</span> )}
+                                                                                    </td>
+                                                                                </tr>
+                                                                            ))}
+                                                                            {displayLogs.length === 0 && ( <tr><td colSpan="7" className="text-center py-10 text-gray-400">没有找到匹配的操作记录，请尝试更改搜索词或清除分类筛选。</td></tr> )}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="bg-white border border-gray-200 rounded-xl p-4 text-[11px] text-gray-500 flex flex-col sm:flex-row justify-between gap-4">
+                                                                <div>
+                                                                    <p className="font-bold text-[#1d1d1f] mb-1">底层探针状态：</p>
+                                                                    <p>仅呈现在日志不导出的自动化建议数：<b className="text-[#007aff]">{summary.unifiedLogs.filter(l => l.isAutomated).length}</b> 条。</p>
+                                                                    <p>因启用时间熔断而跳过的调价记录：<b className="text-red-600">{summary.skipDetails.bidSkippedDueToTimePause || 0}</b> 条。</p>
+                                                                    <p>拦截/隔离错误文件冗余：<b className="text-red-600">{summary.skipDetails.apiError || 0}</b> 条。</p>
+                                                                    <p>无转化指标或非目标行跳过：{summary.skipDetails.notTargeting + summary.skipDetails.notEnabled + summary.skipDetails.spuExcluded + summary.skipDetails.nullBid + summary.skipDetails.targetMetHold + summary.skipDetails.noConditionMet}</p>
+                                                                </div>
+                                                                <div className="text-right">
+                                                                    <p className="font-bold text-rose-600 mb-1">防护引擎战报：</p>
+                                                                    <p>因父级架构停用/归档被拦截：<b className="text-red-600">{summary.skipDetails.parentNotActive}</b></p>
+                                                                </div>
+                                                            </div>
+
+                                                            <div className="border-t border-gray-200 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                                                                <label className="flex items-center gap-2 text-xs text-[#1d1d1f] font-medium cursor-pointer shrink-0">
+                                                                    <input type="checkbox" checked={slimExport} onChange={e=>setSlimExport(e.target.checked)} className="w-4 h-4 rounded border-gray-300 accent-[#007aff] cursor-pointer" />
+                                                                    开启 API 极限稀疏导出 (已免疫 Immutable Fields Bug)
+                                                                </label>
+                                                                <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                                                                    <button onClick={handleExportLogs} className="flex-1 sm:flex-none bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 text-sm font-bold py-3 px-6 rounded-xl shadow-sm flex items-center justify-center gap-2 transition-colors"><IconFileText />下载微调复盘日志</button>
+                                                                    <button onClick={handleEngineAExport} className="flex-1 sm:flex-none bg-[#007aff] hover:bg-[#006ee6] text-white text-sm font-bold py-3 px-8 rounded-xl shadow-sm flex items-center justify-center gap-2 transition-colors"><IconDownload />导出引擎 A 文件</button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="lg:w-80 shrink-0 lg:sticky lg:top-8 h-fit space-y-4 max-h-[calc(100vh-4rem)] overflow-y-auto pr-2 log-scroll-container pb-10">
+                                                
+                                                <div className="bg-white rounded-[20px] border border-gray-100 shadow-sm relative overflow-hidden">
+                                                    <div className="p-4 cursor-pointer flex justify-between items-center bg-[#f9f9fb] hover:bg-gray-50 transition-colors" onClick={() => togglePanel('macro')}>
+                                                        <h3 className="text-xs font-bold text-[#1d1d1f] flex items-center gap-1"><IconAlertTriangle className="text-red-500" /> 宏观层级熔断 (活动/组)</h3>
+                                                        <IconChevron open={panels.macro} />
+                                                    </div>
+                                                    {panels.macro && (
+                                                    <div className="p-4 border-t border-gray-100">
+                                                        <div className="grid grid-cols-2 gap-2 mb-3">
+                                                            <div className="bg-[#f5f5f7] p-2 rounded-xl"><p className="text-[9px] text-gray-600 mb-1">活动级 0单花费 ($)</p><input type="number" name="pauseSpendThresholdCampaign" value={params.pauseSpendThresholdCampaign} onChange={handleParamChange} className="w-full text-sm font-bold text-center outline-none bg-transparent text-red-600" /></div>
+                                                            <div className="bg-[#f5f5f7] p-2 rounded-xl"><p className="text-[9px] text-gray-600 mb-1">广告组 0单花费 ($)</p><input type="number" name="pauseSpendThresholdAdGroup" value={params.pauseSpendThresholdAdGroup} onChange={handleParamChange} className="w-full text-sm font-bold text-center outline-none bg-transparent text-red-600" /></div>
+                                                        </div>
+                                                        <div className="border-t border-gray-100 pt-3">
+                                                            <label className="flex items-center justify-between cursor-pointer group">
+                                                                <div className="pr-4"><span className="text-[10px] font-bold text-[#1d1d1f] block">启用全局时间维度熔断</span><span className="text-[8px] text-gray-500 block mt-0.5 leading-tight">跳过调控，直接暂停超时且0单的实体！</span></div>
+                                                                <div className="relative inline-flex items-center cursor-pointer"><input type="checkbox" name="enableTimeBasedPause" checked={params.enableTimeBasedPause} onChange={handleParamChange} className="sr-only peer" /><div className="w-10 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:bg-[#34c759] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all after:shadow-sm"></div></div>
+                                                            </label>
+                                                            {params.enableTimeBasedPause && (
+                                                                <div className="mt-3 bg-[#f5f5f7] p-2 rounded-xl flex justify-between items-center animate-in fade-in"><p className="text-[9px] text-gray-600 font-bold ml-1">0单存活上限 (天)</p><input type="number" name="pauseTimeThresholdDays" value={params.pauseTimeThresholdDays} onChange={handleParamChange} className="w-16 text-sm font-bold text-center outline-none bg-transparent text-red-600" /></div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="bg-white rounded-[20px] border border-gray-100 shadow-sm relative overflow-hidden">
+                                                    <div className="p-4 cursor-pointer flex justify-between items-center bg-[#f9f9fb] hover:bg-gray-50 transition-colors" onClick={() => togglePanel('micro')}>
+                                                        <h3 className="text-xs font-bold text-[#1d1d1f] flex items-center gap-1">微观极端保护 (投放/SKU)</h3>
+                                                        <IconChevron open={panels.micro} />
+                                                    </div>
+                                                    {panels.micro && (
+                                                    <div className="p-4 border-t border-gray-100">
+                                                        <div className="grid grid-cols-2 gap-2">
+                                                            <div className="bg-[#f5f5f7] p-2 rounded-xl"><p className="text-[9px] text-gray-600 mb-1">投放端 0单点击</p><input type="number" name="pauseClickThresholdTarget" value={params.pauseClickThresholdTarget} onChange={handleParamChange} className="w-full text-sm font-bold text-center outline-none bg-transparent text-[#1d1d1f]" /></div>
+                                                            <div className="bg-[#f5f5f7] p-2 rounded-xl"><p className="text-[9px] text-gray-600 mb-1">投放端 0单花费($)</p><input type="number" name="pauseSpendThresholdTarget" value={params.pauseSpendThresholdTarget} onChange={handleParamChange} className="w-full text-sm font-bold text-center outline-none bg-transparent text-[#1d1d1f]" /></div>
+                                                            <div className="bg-[#f5f5f7] p-2 rounded-xl"><p className="text-[9px] text-gray-600 mb-1">投放端 ACoS {"≥"}</p><input type="number" name="pauseAcosThresholdTarget" value={params.pauseAcosThresholdTarget} onChange={handleParamChange} className="w-full text-sm font-bold text-center outline-none bg-transparent text-[#1d1d1f]" /></div>
+                                                            <div className="bg-[#f5f5f7] p-2 rounded-xl"><p className="text-[9px] text-gray-600 mb-1">SKU端 0单点击</p><input type="number" name="pauseClickThresholdSku" value={params.pauseClickThresholdSku} onChange={handleParamChange} className="w-full text-sm font-bold text-center outline-none bg-transparent text-[#1d1d1f]" /></div>
+                                                            <div className="bg-[#f5f5f7] p-2 rounded-xl col-span-2">
+                                                                <p className="text-[9px] text-gray-600 mb-1 text-center">SKU端 0单花费($) / ACoS {"≥"}</p>
+                                                                <div className="flex gap-2"><input type="number" name="pauseSpendThresholdSku" value={params.pauseSpendThresholdSku} onChange={handleParamChange} className="w-full text-sm font-bold text-center outline-none bg-transparent text-[#1d1d1f] border-r border-gray-300" /><input type="number" name="pauseAcosThresholdSku" value={params.pauseAcosThresholdSku} onChange={handleParamChange} className="w-full text-sm font-bold text-center outline-none bg-transparent text-[#1d1d1f]" /></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="bg-white rounded-[20px] border border-gray-100 shadow-sm relative overflow-hidden">
+                                                    <div className="p-4 cursor-pointer flex justify-between items-center bg-[#f9f9fb] hover:bg-gray-50 transition-colors" onClick={() => togglePanel('spu')}>
+                                                        <h3 className="text-xs font-bold text-[#1d1d1f]">SPU 独立利润红线</h3>
+                                                        <IconChevron open={panels.spu} />
+                                                    </div>
+                                                    {panels.spu && (
+                                                    <div className="p-4 border-t border-gray-100">
+                                                        {availablePortfolios.length > 0 && (
+                                                            <div className="mb-4">
+                                                                <label className="text-[10px] text-gray-500 font-bold mb-2 block">筛选广告组合 (多选)</label>
+                                                                <div className="flex flex-wrap gap-2 max-h-[100px] overflow-y-auto">
+                                                                    <button onClick={() => setSelectedPortfolios(['ALL'])} className={`px-3 py-1.5 text-[10px] font-bold rounded-full transition-all ${selectedPortfolios.includes('ALL') ? 'bg-[#1d1d1f] text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>全部组合</button>
+                                                                    {availablePortfolios.map(p => (
+                                                                        <button key={p} onClick={() => { let newSel = selectedPortfolios.filter(x => x !== 'ALL'); if (newSel.includes(p)) { newSel = newSel.filter(x => x !== p); if (newSel.length === 0) newSel = ['ALL']; } else { newSel.push(p); } setSelectedPortfolios(newSel); }} className={`px-3 py-1.5 text-[10px] font-bold rounded-full transition-all border ${selectedPortfolios.includes(p) ? 'border-[#007aff] bg-blue-50 text-[#007aff] shadow-sm' : 'border-transparent bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>{p}</button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="flex items-center justify-between bg-[#1d1d1f] p-1.5 rounded-xl mb-4 shadow-sm">
+                                                            <div className="flex items-center gap-2 px-2">
+                                                                <input type="checkbox" checked={spuRules.length > 0 && spuRules.every(r => r._selected !== false)} onChange={(e) => setSpuRules(spuRules.map(r => ({ ...r, _selected: e.target.checked })))} className="cursor-pointer accent-[#007aff] w-3.5 h-3.5" title="全选/取消全选" />
+                                                                <span className="text-[10px] font-bold text-white whitespace-nowrap">批量设红线</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <div className="bg-white/10 rounded-lg px-2 py-1 flex items-center resize-x overflow-hidden w-[68px] min-w-[60px] max-w-[200px]">
+                                                                    <input type="number" value={batchTargetAcos} onChange={e => setBatchTargetAcos(e.target.value)} placeholder="ACoS" className="w-full text-[11px] font-bold text-center bg-transparent outline-none text-white placeholder-white/50" />
+                                                                    <span className="text-[10px] text-white/70 ml-0.5">%</span>
+                                                                </div>
+                                                                <button onClick={() => { const val = parseFloat(batchTargetAcos); if (!isNaN(val)) { const selectedCount = spuRules.filter(r => r._selected !== false).length; if(selectedCount === 0) { showAlert("请先勾选 SPU！"); return; } setSpuRules(spuRules.map(r => r._selected !== false ? { ...r, targetAcos: val } : r)); setSummary(null); showAlert(`✅ 已批量更新目标 ACoS 为 ${val}%！`); } }} className="bg-white text-[#1d1d1f] hover:bg-gray-100 text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-sm transition-colors shrink-0">⬇️ 应用选中</button>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1 log-scroll-container">
+                                                            {spuRules.length === 0 ? (
+                                                                <p className="text-xs text-gray-400 text-center py-4">该筛选下无 SPU</p>
+                                                            ) : spuRules.map(rule => (
+                                                                <div key={rule.id} className="flex gap-2 items-center bg-[#f5f5f7] p-2 rounded-xl">
+                                                                    <input type="checkbox" checked={rule._selected !== false} onChange={(e) => updateSpuRule(rule.id, '_selected', e.target.checked)} className="cursor-pointer accent-[#007aff] w-3.5 h-3.5 shrink-0 ml-1" />
+                                                                    <input type="text" value={rule.keyword} onChange={(e) => updateSpuRule(rule.id, 'keyword', e.target.value)} placeholder="全局配置" className="flex-1 text-xs outline-none bg-transparent font-mono text-[#1d1d1f] placeholder-gray-400 min-w-0" />
+                                                                    <div className="w-16 min-w-[64px] max-w-[250px] resize-x overflow-hidden bg-white rounded-lg px-2 py-1 flex items-center shadow-sm focus-within:ring-inset focus-within:ring-1 focus-within:ring-[#007aff] shrink-0">
+                                                                        <input type="number" value={rule.targetAcos} onChange={(e) => updateSpuRule(rule.id, 'targetAcos', e.target.value)} className="w-full text-xs font-bold text-center bg-transparent outline-none text-[#1d1d1f]" />
+                                                                        <span className="text-[10px] text-gray-500 ml-0.5">%</span>
+                                                                    </div>
+                                                                    <button onClick={() => removeSpuRule(rule.id)} className="text-gray-400 hover:text-red-500 shrink-0 p-1"><IconTrash /></button>
+                                                                </div>
+                                                            ))}
+                                                            <button onClick={addSpuRule} className="text-[11px] font-bold text-[#007aff] hover:bg-blue-50 px-3 py-2 rounded-lg mt-2 flex items-center justify-center gap-1 w-full transition-colors border border-dashed border-blue-200"><IconPlus /> 新增规则</button>
+                                                        </div>
+                                                    </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="bg-white rounded-[20px] border border-gray-100 shadow-sm relative overflow-hidden">
+                                                    <div className="p-4 cursor-pointer flex justify-between items-center bg-[#f9f9fb] hover:bg-gray-50 transition-colors" onClick={() => togglePanel('bid')}>
+                                                        <h3 className="text-xs font-bold text-[#1d1d1f]">阶梯竞价微调</h3>
+                                                        <IconChevron open={panels.bid} />
+                                                    </div>
+                                                    {panels.bid && (
+                                                    <div className="p-4 border-t border-gray-100">
+                                                        <div className="grid grid-cols-2 gap-2 mb-3">
+                                                            <div className="bg-[#f5f5f7] p-2 rounded-xl"><p className="text-[9px] text-gray-600 mb-1">天花板 ($)</p><input type="number" name="maxBid" value={params.maxBid} onChange={handleParamChange} className="w-full text-sm text-center outline-none bg-transparent" /></div>
+                                                            <div className="bg-[#f5f5f7] p-2 rounded-xl"><p className="text-[9px] text-gray-600 mb-1">地板价 ($)</p><input type="number" name="minBid" value={params.minBid} onChange={handleParamChange} className="w-full text-sm text-center outline-none bg-transparent" /></div>
+                                                            <div className="bg-[#f5f5f7] p-2 rounded-xl"><p className="text-[9px] text-gray-600 mb-1">提价幅度 (%)</p><input type="number" name="increasePcnt" value={params.increasePcnt} onChange={handleParamChange} className="w-full text-sm text-center outline-none bg-transparent" /></div>
+                                                            <div className="bg-[#f5f5f7] p-2 rounded-xl"><p className="text-[9px] text-gray-600 mb-1">降价幅度 (%)</p><input type="number" name="decreasePcnt" value={params.decreasePcnt} onChange={handleParamChange} className="w-full text-sm text-center outline-none bg-transparent" /></div>
+                                                        </div>
+                                                        <div className="flex justify-between items-center bg-[#f5f5f7] p-2 rounded-xl border border-gray-100">
+                                                            <p className="text-[10px] text-gray-600">稳健容忍区 (%)</p><input type="number" name="acosBuffer" value={params.acosBuffer} onChange={handleParamChange} className="w-12 text-sm font-bold text-right outline-none bg-transparent text-green-600" />
+                                                        </div>
+                                                    </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="bg-white rounded-[20px] border border-gray-100 shadow-sm relative overflow-hidden">
+                                                    <div className="p-4 cursor-pointer flex justify-between items-center bg-[#f9f9fb] hover:bg-gray-50 transition-colors" onClick={() => togglePanel('manager')}>
+                                                        <div className="flex items-center gap-2">
+                                                            <h3 className="text-xs font-bold text-[#1d1d1f]">负责人映射表</h3>
+                                                            <span className="text-[9px] font-bold text-[#1d1d1f] bg-gray-200 px-2 py-0.5 rounded-full">Excel解析</span>
+                                                        </div>
+                                                        <IconChevron open={panels.manager} />
+                                                    </div>
+                                                    {panels.manager && (
+                                                    <div className="p-4 border-t border-gray-100">
+                                                        <p className="text-[10px] text-gray-500 mb-3 leading-relaxed">上传包含【店铺货号, 营销负责人】两列的 Excel 文件，系统将极速解析用于复盘日志撞库。</p>
+                                                        <div onClick={() => document.getElementById('manager-upload').click()} className="w-full border border-dashed border-gray-300 rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-[#1d1d1f] hover:bg-gray-50 transition-colors">
+                                                            <div className="text-gray-400"><IconUpload /></div>
+                                                            <span className="text-[11px] font-bold text-gray-700 mt-2">点击载入映射表 (.xlsx)</span>
+                                                            <span className="text-[9px] text-[#34c759] font-bold mt-1 bg-green-50 px-2 py-0.5 rounded-full">已就绪: {Object.keys(managerMap).length} 条</span>
+                                                        </div>
+                                                        <input id="manager-upload" type="file" className="hidden" accept=".xlsx, .csv" onChange={handleManagerFileUpload} />
+                                                    </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'globalNeg' && (
+                                        <div className="max-w-5xl mx-auto py-4 animate-in fade-in w-full">
+                                            <div className="bg-white rounded-[24px] p-8 border border-gray-100 shadow-sm w-full">
+                                                <div className="mb-8">
+                                                    <h2 className="text-lg font-bold text-[#1d1d1f] mb-2">1. 靶向瞄准 (Targeting)</h2>
+                                                    <p className="text-[11px] text-gray-500 mb-4">不再受组合与横杠限制！只要在下方输入或选择您的目标核心词，系统将自动扫描出名称中【包含】该词的<b>所有存活广告活动</b>，并强行注射否定指令。</p>
+                                                    <input type="text" list="extracted-spus" value={globalNegState.spu} onChange={e => setGlobalNegState({...globalNegState, spu: e.target.value.toUpperCase()})} placeholder="输入或选择目标 SPU (例如: D7A280)" className="w-full md:w-1/3 bg-[#f5f5f7] border border-gray-100 rounded-xl p-3 outline-none text-sm font-bold text-[#007aff] transition-all uppercase focus:border-[#007aff]" />
+                                                    <datalist id="extracted-spus">{extractedSpus.map(spu => <option key={spu} value={spu} />)}</datalist>
+                                                </div>
+
+                                                <div className={`transition-opacity duration-300 ${!globalNegState.spu ? 'opacity-30 pointer-events-none' : 'opacity-100'}`}>
+                                                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+                                                        <h2 className="text-lg font-bold text-[#1d1d1f]">2. 录入绞杀名单 (Blacklist Payload)</h2>
+                                                        <button onClick={() => negFileInputRef.current.click()} className="text-[12px] font-bold bg-[#1d1d1f] hover:bg-black text-white px-4 py-2 rounded-xl transition-colors flex items-center gap-1 shadow-sm shrink-0">
+                                                            <IconUpload /> 导入独立否词库
+                                                        </button>
+                                                        <input type="file" ref={negFileInputRef} onChange={handleNegFileUpload} onClick={e => e.target.value = null} className="hidden" accept=".xlsx, .csv" />
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                                        <div className="bg-[#f9f9fb] p-5 rounded-[20px] border border-gray-100 flex flex-col">
+                                                            <label className="text-sm font-bold text-[#1d1d1f] mb-1">精确否定 (Exact)</label><p className="text-[10px] text-[#86868b] mb-3">每行一个烂词</p>
+                                                            <textarea value={globalNegState.exact} onChange={e => setGlobalNegState({...globalNegState, exact: e.target.value})} className="w-full h-64 bg-white border border-gray-200 rounded-xl p-3 text-[13px] text-[#1d1d1f] font-mono resize-none transition-all focus:border-[#007aff]" placeholder={"heel for women\nblack heel"} />
+                                                        </div>
+                                                        <div className="bg-[#f9f9fb] p-5 rounded-[20px] border border-gray-100 flex flex-col">
+                                                            <label className="text-sm font-bold text-[#1d1d1f] mb-1">词组否定 (Phrase)</label><p className="text-[10px] text-[#86868b] mb-3">每行一个垃圾词根</p>
+                                                            <textarea value={globalNegState.phrase} onChange={e => setGlobalNegState({...globalNegState, phrase: e.target.value})} className="w-full h-64 bg-white border border-gray-200 rounded-xl p-3 text-[13px] text-[#1d1d1f] font-mono resize-none transition-all focus:border-[#007aff]" placeholder={"cheap\nfree"} />
+                                                        </div>
+                                                        <div className="bg-[#f9f9fb] p-5 rounded-[20px] border border-gray-100 flex flex-col">
+                                                            <label className="text-sm font-bold text-[#1d1d1f] mb-1">竞品拦截 (ASIN)</label><p className="text-[10px] text-[#86868b] mb-3">粘贴自动净化格式</p>
+                                                            <textarea value={globalNegState.asin} onChange={e => setGlobalNegState({...globalNegState, asin: e.target.value})} className="w-full h-64 bg-white border border-gray-200 rounded-xl p-3 text-[13px] text-[#1d1d1f] font-mono uppercase resize-none transition-all focus:border-[#007aff]" placeholder={"B0XXXXXX\nB0YYYYYY"} />
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex flex-col md:flex-row items-center justify-between border-t border-gray-100 pt-6 gap-4">
+                                                        <div className="text-[11px] text-[#86868b] flex gap-4 flex-wrap"><span>精确待载入: <b className="text-[#1d1d1f]">{globalNegState.exact.split('\n').filter(s => s.trim()).length}</b></span><span>词组待载入: <b className="text-[#1d1d1f]">{globalNegState.phrase.split('\n').filter(s => s.trim()).length}</b></span><span>ASIN待载入: <b className="text-[#1d1d1f]">{globalNegState.asin.split('\n').filter(s => s.trim()).length}</b></span></div>
+                                                        <button onClick={handleEngineBExport} disabled={!globalNegState.spu || (!globalNegState.exact.trim() && !globalNegState.phrase.trim() && !globalNegState.asin.trim())} className="w-full md:w-auto bg-[#ff3b30] hover:bg-[#d70015] disabled:bg-[#d2d2d7] text-white text-sm font-bold py-3 px-8 rounded-xl flex items-center justify-center gap-2 transition-colors shadow-sm whitespace-nowrap"><IconDownload />输出标准底层强压包 (V3)</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {activeTab === 'churnCleanser' && (
+                                        <div className="max-w-5xl mx-auto py-4 animate-in fade-in w-full">
+                                            <div className="bg-[#f9f9fb] rounded-[24px] p-8 border border-gray-100 shadow-sm w-full">
+                                                <div className="mb-6 flex flex-col md:flex-row justify-between items-start gap-6">
+                                                    <div className="flex-1 min-w-0">
+                                                        <h2 className="text-lg font-bold text-[#1d1d1f] mb-2">流失率跨表猎杀器 (Churn Rate Cleanser)</h2>
+                                                        <p className="text-[11px] text-gray-500 max-w-2xl leading-relaxed">支持多选并发！您可以一次性框选上传<b className="text-gray-800">所有维度的流失表</b>。系统将自动过滤单量过少的偶然性记录，精准狙击真正存在巨额流失的广告实体。</p>
+                                                    </div>
+                                                    <div className="flex flex-wrap md:flex-nowrap gap-4 shrink-0">
+                                                        <div className="flex flex-col items-end">
+                                                            <label className="text-[10px] font-bold text-gray-500 mb-1">总单量大于 ({">"}单)</label>
+                                                            <input type="number" className="w-20 text-center font-black text-xl text-[#007aff] bg-white border border-gray-200 rounded-lg p-1 outline-none focus:border-[#007aff]" value={engineCState.minOrders} onChange={(e) => setEngineCState({...engineCState, minOrders: parseInt(e.target.value) || 0})} />
+                                                        </div>
+                                                        <div className="flex flex-col items-end">
+                                                            <label className="text-[10px] font-bold text-gray-500 mb-1">流失率红线 ({"≥"}%)</label>
+                                                            <input type="number" className="w-20 text-center font-black text-xl text-[#ff9500] bg-white border border-gray-200 rounded-lg p-1 outline-none focus:border-[#ff9500]" value={engineCState.threshold} onChange={(e) => setEngineCState({...engineCState, threshold: parseFloat(e.target.value) || 0})} />
+                                                        </div>
+                                                        <div className="flex flex-col items-end">
+                                                            <label className="text-[10px] font-bold text-gray-500 mb-1">执行绞杀层级</label>
+                                                            <select className="h-[36px] bg-white border border-gray-200 rounded-lg px-2 text-xs font-bold text-[#1d1d1f] outline-none cursor-pointer focus:border-[#007aff]" value={engineCState.actionType} onChange={(e) => setEngineCState({...engineCState, actionType: e.target.value})}>
+                                                                <option value="campaign_and_sku">精准打击：活动及高流失SKU</option>
+                                                                <option value="sku_only">只停用高流失的变体/SKU</option>
+                                                                <option value="campaign_only">只停用高流失广告活动</option>
+                                                            </select>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {!churnFileData ? (
+                                                    <div onClick={() => !isProcessing && churnInputRef.current.click()} className={`border-2 border-dashed rounded-[18px] p-8 flex flex-col items-center justify-center transition-all ${isProcessing ? 'border-[#ff9500] bg-[#fffaf0] opacity-70' : 'border-[#d2d2d7] hover:border-[#ff9500] hover:bg-[#fffcf8] cursor-pointer'}`}>
+                                                        {isProcessing ? <IconLoader /> : <IconUpload />}
+                                                        <p className="text-[#1d1d1f] font-semibold mt-4 text-sm">{isProcessing ? progressMsg : "点击框选所有流失率报表 (.xlsx / .csv)"}</p>
+                                                        <p className="text-[10px] text-gray-400 mt-2">支持多选，系统会自动无视大小写拼接读取所有带Emoji异构表头</p>
+                                                    </div>
+                                                ) : (
+                                                    <div className="bg-[#fffaf0] border border-[#ffe0b2] rounded-[18px] p-5 flex flex-col gap-4">
+                                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                            <div className="flex items-center gap-4">
+                                                                <div className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-[#ff9500] shrink-0"><IconTrendingDown /></div>
+                                                                <div className="max-w-[500px] min-w-0"><p className="text-sm font-bold text-[#1d1d1f] truncate" title={churnFileData.fileName}>{churnFileData.fileName}</p><p className="text-[11px] text-[#86868b] mt-1">已锁定数据层: {churnFileData.sheetName}</p></div>
+                                                            </div>
+                                                            <button onClick={() => {setChurnFileData(null); setEngineCSummary(null); setSelectedChurnLogIds(new Set());}} className="text-xs font-bold text-[#ff9500] hover:underline px-4 shrink-0 bg-orange-50 py-1.5 rounded-lg border border-orange-200">更换报告</button>
+                                                        </div>
+                                                        
+                                                        {!engineCSummary ? (
+                                                            <button onClick={handleEngineCProcess} className="w-full bg-[#1d1d1f] hover:bg-black text-white text-sm font-bold py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2"><IconAlertTriangle /> 启动流失率全息清剿</button>
+                                                        ) : (
+                                                            <div className="animate-in fade-in space-y-4 w-full">
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                    <div className="bg-red-50 rounded-xl p-4 border border-red-100 shadow-sm relative overflow-hidden">
+                                                                        <div className="absolute top-0 right-0 w-16 h-16 bg-red-100 rounded-bl-full -mr-4 -mt-4 opacity-50"></div>
+                                                                        <p className="font-bold text-red-800 mb-3 flex items-center gap-1.5"><IconActivity /> 靶向锁定高流失活动: <span className="text-xl mx-1">{engineCSummary.badCampaignsTotal}</span> 个</p>
+                                                                        <div className="flex justify-between text-[11px] text-red-600 bg-white/60 p-2 rounded-lg border border-red-100/50">
+                                                                            <span className="flex flex-col items-center">成功执行绞杀<b className="text-red-700 text-lg">{engineCSummary.pausedCampCount}</b></span>
+                                                                            <span className="flex flex-col items-center opacity-70">原状态已暂停/归档<b className="text-sm">{engineCSummary.alreadyPausedCampCount}</b></span>
+                                                                            <span className="flex flex-col items-center opacity-70">表中未找到<b className="text-sm">{engineCSummary.notFoundCampCount}</b></span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="bg-orange-50 rounded-xl p-4 border border-orange-100 shadow-sm relative overflow-hidden">
+                                                                        <div className="absolute top-0 right-0 w-16 h-16 bg-orange-100 rounded-bl-full -mr-4 -mt-4 opacity-50"></div>
+                                                                        <p className="font-bold text-orange-800 mb-3 flex items-center gap-1.5"><IconAlertTriangle /> 靶向锁定高流失 SKU: <span className="text-xl mx-1">{engineCSummary.badSkusTotal}</span> 个</p>
+                                                                        <div className="flex justify-between text-[11px] text-orange-600 bg-white/60 p-2 rounded-lg border border-orange-100/50">
+                                                                            <span className="flex flex-col items-center">成功执行绞杀<b className="text-orange-700 text-lg">{engineCSummary.pausedSkuCount}</b></span>
+                                                                            <span className="flex flex-col items-center opacity-70">原状态已暂停/归档<b className="text-sm">{engineCSummary.alreadyPausedSkuCount}</b></span>
+                                                                            <span className="flex flex-col items-center opacity-70">表中未找到<b className="text-sm">{engineCSummary.notFoundSkuCount}</b></span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mt-4 w-full">
+                                                                    <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex flex-col xl:flex-row justify-between gap-4">
+                                                                        <span className="text-xs font-bold text-[#1d1d1f] flex items-center gap-1"><IconEdit3 />绞杀执行日志 (可手动撤销)</span>
+                                                                        <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
+                                                                            <div className="flex gap-2">
+                                                                                <input type="text" placeholder="搜索日志..." value={churnLogSearchText} onChange={e => setChurnLogSearchText(e.target.value)} className="px-2 py-1 text-xs border border-gray-300 rounded focus:border-[#007aff] outline-none w-28 md:w-40" />
+                                                                                <select value={churnLogSortBy} onChange={e => setChurnLogSortBy(e.target.value)} className="px-2 py-1 text-xs border border-gray-300 rounded bg-white focus:border-[#007aff] outline-none cursor-pointer"><option value="default">默认顺序</option><option value="rateDesc">流失率由高到低</option><option value="ordersDesc">单量由多到少</option></select>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-[10px] text-gray-500 whitespace-nowrap">已选 {selectedChurnLogIds.size} 项</span>
+                                                                                <button onClick={handleBulkChurnRevert} className="text-[10px] font-bold bg-white border border-gray-300 text-gray-700 px-3 py-1 rounded hover:bg-gray-50 transition-colors shadow-sm whitespace-nowrap">批量赦免选中</button>
+                                                                                <span className="text-[10px] text-gray-500 whitespace-nowrap">扫描 {engineCSummary.scannedChurnRows} 记录</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="max-h-[400px] overflow-y-auto overflow-x-auto log-scroll-container">
+                                                                        <table className="w-full text-[11px] text-left min-w-[700px]">
+                                                                            <thead className="bg-white sticky top-0 z-10 shadow-sm">
+                                                                                <tr>
+                                                                                    <th className="px-4 py-2 w-8 text-center border-b border-gray-100"><input type="checkbox" className="cursor-pointer" checked={displayChurnLogs.length > 0 && displayChurnLogs.every(log => selectedChurnLogIds.has(log.logId))} onChange={(e) => { const newSet = new Set(selectedChurnLogIds); if (e.target.checked) { displayChurnLogs.forEach(log => newSet.add(log.logId)); } else { displayChurnLogs.forEach(log => newSet.delete(log.logId)); } setSelectedChurnLogIds(newSet); }} title="全选/反选" /></th>
+                                                                                    <th className="px-2 py-2 font-medium text-gray-500 border-b border-gray-100">被绞杀活动</th><th className="px-2 py-2 font-medium text-gray-500 border-b border-gray-100">实体层级</th><th className="px-2 py-2 font-medium text-gray-500 border-b border-gray-100">触发红线</th><th className="px-4 py-2 font-medium text-[#007aff] text-right border-b border-gray-100">人工复核</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody className="divide-y divide-gray-50">
+                                                                                {visibleChurnLogs.map((log) => (
+                                                                                    <tr key={log.logId} className="hover:bg-orange-50/30">
+                                                                                        <td className="px-4 py-2 text-center"><input type="checkbox" className="cursor-pointer" checked={selectedChurnLogIds.has(log.logId)} onChange={(e) => { const newSet = new Set(selectedChurnLogIds); if(e.target.checked) newSet.add(log.logId); else newSet.delete(log.logId); setSelectedChurnLogIds(newSet); }} /></td>
+                                                                                        <td className="px-2 py-2 font-medium text-gray-800 truncate max-w-[200px]" title={log.campaign}>{log.campaign}{log.isAutomated && <span className="ml-1 px-1 bg-blue-100 text-blue-600 rounded text-[9px]">自动</span>}</td>
+                                                                                        <td className="px-2 py-2 text-gray-600">{log.target}</td><td className="px-2 py-2 text-red-600 font-bold">{log.reason}</td>
+                                                                                        <td className="px-4 py-2 text-right"><select className={`border font-bold rounded px-1 py-0.5 text-center outline-none cursor-pointer ${log.newVal === 'enabled' || log.newVal === '已启用' ? 'border-green-400 text-green-700 bg-green-50' : 'border-[#ff9500] text-[#d07800] bg-orange-50 focus:bg-white'}`} value={log.newVal === '已暂停' || log.newVal === 'paused' ? 'paused' : 'enabled'} onChange={(e) => handleEngineCLogEdit(log.logId, e.target.value)}><option value="paused">已熔断</option><option value="enabled">恢复启用(赦免)</option></select></td>
+                                                                                    </tr>
+                                                                                ))}
+                                                                                {displayChurnLogs.length === 0 && (<tr><td colSpan="5" className="text-center py-8 text-gray-400">未扫描到匹配的活跃数据可供绞杀。</td></tr>)}
+                                                                            </tbody>
+                                                                        </table>
+                                                                        {totalDisplayChurnLogs > MAX_LOGS_DISPLAY && (<div className="py-3 text-center text-gray-400 text-xs font-bold border-t">为了防止浏览器崩溃，界面仅渲染前 {MAX_LOGS_DISPLAY} 条。其余数据全选和导出功能依然生效。</div>)}
+                                                                    </div>
+                                                                </div>
+                                                                <button onClick={handleEngineCExport} className="w-full bg-[#007aff] hover:bg-[#006ee6] text-white text-sm font-bold py-3 rounded-xl shadow-md transition-all flex items-center justify-center gap-2"><IconDownload /> 导出流失率绞杀更新包 (Sparse Update)</button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                <input type="file" ref={churnInputRef} onChange={handleChurnUpload} onClick={e => e.target.value = null} className="hidden" accept=".xlsx, .csv" multiple />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<AmazonBidOptimizer />);
+    </script>
+</body>
+</html>
