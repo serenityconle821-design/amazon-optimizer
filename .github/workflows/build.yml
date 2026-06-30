@@ -19,8 +19,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build EXE
+   - name: Build EXE
         run: |
+          cd AmazonOptimizer_GitHub_READY
           npm install -g pkg
           pkg main.js --targets node18-win-x64 --output AmazonOptimizer.exe
 
